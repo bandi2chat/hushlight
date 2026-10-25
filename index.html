@@ -47,8 +47,10 @@ button.card{font:inherit;color:inherit;text-align:left;align-items:flex-start}
 .b.me{align-self:flex-end;color:#0B0F1A;border-bottom-right-radius:4px}
 .b.ot{align-self:flex-start;background:var(--ch);border-bottom-left-radius:4px}
 .bar{display:flex;gap:8px}
-.bar input{flex:1;border-radius:27px}
-.send{height:54px;padding:0 22px;border:0;border-radius:27px;background:var(--cy);color:#0B0F1A;font-weight:700;font-size:16px}
+.bar input{flex:1;min-width:0;border-radius:27px}
+.send.rec{background:#FF7A90}
+audio{max-width:100%;height:40px}
+.send{height:54px;padding:0 16px;border:0;border-radius:27px;background:var(--cy);color:#0B0F1A;font-weight:700;font-size:16px}
 </style>
 </head>
 <body>
@@ -235,21 +237,41 @@ async function viewChat(other) {
     <p class="muted" id="live" style="margin:0;font-size:12px">Conectando…</p>
     <div class="msgs" id="msgs"></div>
     <p id="msg" role="status"></p>
-    <div class="bar"><input id="txt" placeholder="Escribe un mensaje" autocomplete="off" aria-label="Mensaje"><button class="send" id="send">Enviar</button></div>
+    <button class="link" id="cancel" hidden>Cancelar grabación</button>
+    <div class="bar"><input id="txt" placeholder="Escribe un mensaje" autocomplete="off" aria-label="Mensaje"><button class="send" id="mic" style="background:var(--vi)">Grabar</button><button class="send" id="send">Enviar</button></div>
   </div>`);
   $('#app').className = 'full';
   const seen = new Map();
   let poll = null, left = false;
   const tick = m => m.status === 'read' ? '✓✓ Leído' : m.status === 'delivered' ? '✓✓' : '✓';
+  const els = new Map(), urls = new Map();
+  const audioSrc = async (m, a) => {
+    if (!urls.has(m.audio_path)) {
+      const { data, error } = await sb.storage.from('audios').createSignedUrl(m.audio_path, 3600);
+      if (error) { const sp = document.createElement('span'); sp.textContent = 'No se pudo cargar el audio.'; a.replaceWith(sp); return; }
+      urls.set(m.audio_path, data.signedUrl);
+    }
+    a.src = urls.get(m.audio_path);
+  };
   const draw = () => {
     const box = $('#msgs'); if (!box) return;
     const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
     const rows = [...seen.values()].sort((a, b) => a.created_at < b.created_at ? -1 : 1);
-    box.innerHTML = rows.map(m => {
+    rows.forEach(m => {
       const mine = m.sender_id === me.id;
       const t = new Date(m.created_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
-      return `<div class="b ${mine ? 'me' : 'ot'}"${mine ? ` style="background:${esc(profile.color)}"` : ''}>${esc(m.body)}<small>${t}${mine ? ' · ' + tick(m) : ''}</small></div>`;
-    }).join('');
+      let el = els.get(m.id);
+      if (!el) {
+        el = document.createElement('div');
+        el.className = 'b ' + (mine ? 'me' : 'ot');
+        if (mine) el.style.background = profile.color;
+        if (m.kind === 'audio') { const a = document.createElement('audio'); a.controls = true; a.preload = 'metadata'; el.appendChild(a); audioSrc(m, a); }
+        else { const sp = document.createElement('span'); sp.textContent = m.body; el.appendChild(sp); }
+        el.appendChild(document.createElement('small'));
+        els.set(m.id, el); box.appendChild(el);
+      }
+      el.querySelector('small').textContent = t + (mine ? ' · ' + tick(m) : '');
+    });
     if (atEnd) box.scrollTop = box.scrollHeight;
   };
   const markRead = async () => {
@@ -285,9 +307,48 @@ async function viewChat(other) {
     if (error) { $('#txt').value = body; return msg(error.message); }
     seen.set(data.id, data); draw(); $('#msgs').scrollTop = $('#msgs').scrollHeight;
   };
+  let rec = null, chunks = [], timer = null, t0 = 0;
+  const micBtn = $('#mic'), cancelBtn = $('#cancel');
+  const fmt = n => Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0');
+  const sendAudio = async blob => {
+    if (blob.size < 1000) return msg('El audio es muy corto.');
+    const base = (blob.type || 'audio/webm').split(';')[0];
+    const ext = base.includes('mp4') ? 'm4a' : base.includes('ogg') ? 'ogg' : base.includes('mpeg') ? 'mp3' : 'webm';
+    const path = `${conv.id}/${crypto.randomUUID()}.${ext}`;
+    msg('Enviando audio…');
+    const up = await sb.storage.from('audios').upload(path, blob, { contentType: base });
+    if (up.error) return msg('No se pudo subir: ' + up.error.message);
+    const { data, error } = await sb.from('messages').insert({ conversation_id: conv.id, sender_id: me.id, kind: 'audio', audio_path: path }).select().single();
+    if (error) return msg(error.message);
+    msg(''); seen.set(data.id, data); draw(); $('#msgs').scrollTop = $('#msgs').scrollHeight;
+  };
+  const startRec = async () => {
+    if (!navigator.mediaDevices || !window.MediaRecorder) return msg('Este navegador no permite grabar audio.');
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch { return msg('Permite el micrófono en el navegador para grabar.'); }
+    chunks = [];
+    const r = new MediaRecorder(stream); rec = r;
+    r.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    r.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      clearInterval(timer); timer = null;
+      micBtn.textContent = 'Grabar'; micBtn.classList.remove('rec'); cancelBtn.hidden = true;
+      if (!r.cancelled) await sendAudio(new Blob(chunks, { type: r.mimeType }));
+    };
+    r.start(); t0 = Date.now(); msg('');
+    micBtn.classList.add('rec'); micBtn.textContent = 'Enviar · 0:00'; cancelBtn.hidden = false;
+    timer = setInterval(() => {
+      const sec = Math.floor((Date.now() - t0) / 1000);
+      micBtn.textContent = 'Enviar · ' + fmt(sec);
+      if (sec >= 60) r.stop();
+    }, 250);
+  };
+  micBtn.onclick = () => { if (rec && rec.state === 'recording') rec.stop(); else startRec(); };
+  cancelBtn.onclick = () => { if (rec && rec.state === 'recording') { rec.cancelled = true; rec.stop(); } };
   $('#send').onclick = send;
   $('#txt').onkeydown = e => { if (e.key === 'Enter') send(); };
-  $('#back').onclick = () => { left = true; clearInterval(poll); sb.removeChannel(ch); viewHome(); };
+  $('#back').onclick = () => { if (rec && rec.state === 'recording') { rec.cancelled = true; rec.stop(); } left = true; clearInterval(poll); sb.removeChannel(ch); viewHome(); };
 }
 
 boot();
