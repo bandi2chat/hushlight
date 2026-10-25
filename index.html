@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hushlight</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Space+Grotesk:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#1B2240;--sf:#262F52;--ch:#2B3560;--bd:#3F4B78;--tx:#E8EEFF;--mu:#9AA6C7;--cy:#3DF2E0;--vi:#8B7BFF}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:'Space Grotesk',sans-serif}
+#app{max-width:430px;margin:0 auto;min-height:100vh;padding:48px 24px 32px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px}
+h1{margin:6px 0 0;font-size:32px;line-height:1.15}
+.logo{font-family:Orbitron,sans-serif;font-weight:700;letter-spacing:4px;color:var(--cy)}
+.muted{color:var(--mu);font-size:15px;margin:0}
+label{font-size:14px;color:var(--mu)}
+input{height:54px;border-radius:14px;border:1px solid var(--bd);background:var(--sf);color:var(--tx);padding:0 16px;font-size:17px;font-family:inherit}
+button{font-family:inherit;cursor:pointer}
+.btn{height:54px;border:0;border-radius:27px;background:var(--cy);color:#0B0F1A;font-weight:700;font-size:17px}
+.btn2{height:50px;border-radius:25px;border:1px solid var(--vi);background:transparent;color:#C9C2FF;font-size:16px}
+.link{border:0;background:none;color:var(--mu);text-decoration:underline;font-size:15px;padding:8px}
+.tabs{display:flex;padding:4px;border-radius:24px;background:var(--sf)}
+.tabs button{flex:1;padding:12px;border:0;border-radius:20px;background:transparent;color:var(--mu);font-weight:700;font-size:15px}
+.tabs .on{background:var(--cy);color:#0B0F1A}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:10px 16px;border-radius:20px;border:0;color:#0B0F1A;font-weight:700;font-size:14px}
+.sw{width:44px;height:44px;border-radius:50%;border:0}
+.sel{outline:3px solid var(--tx);outline-offset:2px}
+.ava{width:48px;height:48px;border-radius:50%;border:3px solid;box-sizing:border-box;padding:3px;flex:none}
+.ava i{display:flex;width:100%;height:100%;border-radius:50%;color:#0B0F1A;font-weight:700;align-items:center;justify-content:center;font-style:normal}
+.row{display:flex;gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--ch)}
+.cards{display:flex;gap:12px}
+.card{flex:1;padding:16px;border-radius:22px;background:var(--sf);border:1px solid var(--bd);display:flex;flex-direction:column;gap:6px}
+.sec{font-size:14px;color:var(--mu);margin-top:10px}
+.code{font-family:Orbitron,sans-serif;font-size:26px;letter-spacing:4px;text-align:center;padding:18px;border-radius:18px;background:var(--sf);border:2px solid var(--cy)}
+.top{display:flex;justify-content:space-between;align-items:center}
+.mood{font-size:13px;padding:6px 12px;border-radius:14px;background:var(--ch);color:#C9C2FF}
+#msg{margin:0;min-height:20px;font-size:14px;color:#FFD27A}
+:focus-visible{outline:3px solid var(--cy);outline-offset:2px}
+button.row{background:none;border:0;border-bottom:1px solid var(--ch);font:inherit;color:inherit;width:100%;text-align:left}
+button.card{font:inherit;color:inherit;text-align:left;align-items:flex-start}
+#app.full{height:100dvh;padding:12px 14px;gap:8px}
+.chat{flex:1;display:flex;flex-direction:column;min-height:0;gap:8px}
+.chat-top{display:flex;align-items:center;gap:12px}
+.msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:6px 2px}
+.b{max-width:75%;padding:10px 14px;border-radius:16px;overflow-wrap:anywhere}
+.b small{display:block;font-size:11px;margin-top:4px;opacity:.85}
+.b.me{align-self:flex-end;color:#0B0F1A;border-bottom-right-radius:4px}
+.b.ot{align-self:flex-start;background:var(--ch);border-bottom-left-radius:4px}
+.bar{display:flex;gap:8px}
+.bar input{flex:1;border-radius:27px}
+.send{height:54px;padding:0 22px;border:0;border-radius:27px;background:var(--cy);color:#0B0F1A;font-weight:700;font-size:16px}
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.104.0/dist/umd/supabase.js"></script>
+<script>
+// Datos públicos del proyecto (la seguridad la dan las reglas de la base de datos)
+const SUPABASE_URL = 'https://vijqxljcyzrvkoxzahwe.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_CvLkBVcd7PnT9TXDUiQ-aQ_pQ3wKbSV';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const COLORS = ['#3DF2E0','#8B7BFF','#F2B8FF','#FFD27A','#FF7A90'];
+const MOODS = {calma:['Calma','#7FD6C2'], enfocado:['Enfocado','#3DF2E0'], energia:['Energía','#FFD27A'], noche:['Noche','#8B7BFF']};
+const ERR = {
+  'User already registered':'Ese correo ya tiene cuenta. Usa «Ya tengo cuenta».',
+  'Invalid login credentials':'Correo o contraseña incorrectos.',
+  'Email not confirmed':'Falta confirmar el correo.'
+};
+const urlCode = (new URLSearchParams(location.search).get('c') || '').toUpperCase();
+let me = null, profile = null, tab = 'crear', pendingError = '';
+
+const R = html => { $('#app').className = ''; $('#app').innerHTML = html; };
+const msg = t => { const m = $('#msg'); if (m) m.textContent = t || ''; };
+const fail = e => msg(ERR[e.message] || e.message);
+const ava = (p, size) => `<div class="ava" style="border-color:${esc(p.color)};${size?`width:${size}px;height:${size}px`:''}"><i style="background:${esc(p.color)}">${esc((p.display_name||'?').charAt(0).toUpperCase())}</i></div>`;
+
+async function boot() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return viewAuth();
+    me = session.user;
+    const { data, error } = await sb.from('profiles').select('*').eq('id', me.id).single();
+    if (error) throw error;
+    profile = data;
+    if (!profile.display_name) return viewOnboarding();
+    const code = sessionStorage.getItem('pending');
+    if (code) {
+      sessionStorage.removeItem('pending');
+      const { error: e } = await sb.rpc('redeem_invite', { p_code: code });
+      pendingError = e ? e.message : '';
+    }
+    viewHome();
+  } catch (e) {
+    R(`<div class="logo">HUSHLIGHT</div><p id="msg" role="status">No se pudo conectar: ${esc(e.message)}</p><button class="btn" id="retry">Reintentar</button>`);
+    $('#retry').onclick = boot;
+  }
+}
+
+function viewAuth() {
+  const crear = tab === 'crear';
+  R(`<div class="logo">HUSHLIGHT</div>
+  <h1>Entra con tu código, no con tu número.</h1>
+  <p class="muted">Tu círculo íntimo, disponible en cualquier navegador.</p>
+  <div class="tabs"><button id="t1" class="${crear?'on':''}">Crear cuenta</button><button id="t2" class="${crear?'':'on'}">Ya tengo cuenta</button></div>
+  ${crear ? `<label for="code">Código de invitación (si tienes uno)</label>
+  <input id="code" value="${esc(urlCode)}" autocomplete="off" style="text-transform:uppercase;letter-spacing:3px;text-align:center">` : ''}
+  <label for="em">Correo</label><input id="em" type="email" autocomplete="email">
+  <label for="pw">Contraseña (mínimo 8 caracteres)</label><input id="pw" type="password" autocomplete="${crear?'new-password':'current-password'}">
+  <p id="msg" role="status"></p>
+  <button class="btn" id="go">${crear?'Crear cuenta':'Entrar'}</button>`);
+  $('#t1').onclick = () => { tab = 'crear'; viewAuth(); };
+  $('#t2').onclick = () => { tab = 'entrar'; viewAuth(); };
+  $('#go').onclick = async () => {
+    const email = $('#em').value.trim(), pw = $('#pw').value;
+    if (!email || pw.length < 8) return msg('Escribe un correo y una contraseña de al menos 8 caracteres.');
+    $('#go').disabled = true; msg('');
+    if (crear) {
+      const { data, error } = await sb.auth.signUp({ email, password: pw });
+      if (error) { $('#go').disabled = false; return fail(error); }
+      if (!data.session) { $('#go').disabled = false; return msg('Revisa tu correo para confirmar la cuenta.'); }
+      const code = $('#code').value.trim();
+      if (code) sessionStorage.setItem('pending', code);
+    } else {
+      const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+      if (error) { $('#go').disabled = false; return fail(error); }
+    }
+    boot();
+  };
+}
+
+function viewOnboarding() {
+  let color = COLORS[0], mood = 'calma';
+  R(`<div class="logo">HUSHLIGHT</div>
+  <h1>Cuéntanos quién eres.</h1>
+  <div id="prev" style="align-self:center;margin:6px 0"></div>
+  <label for="nm">¿Cómo te llaman?</label><input id="nm" maxlength="30" autocomplete="nickname">
+  <div class="sec">Tu color</div>
+  <div class="chips" id="sws">${COLORS.map(c=>`<button class="sw" data-c="${c}" style="background:${c}" aria-label="Color ${c}"></button>`).join('')}</div>
+  <div class="sec">¿Cómo estás hoy?</div>
+  <div class="chips" id="mds">${Object.entries(MOODS).map(([k,[n,c]])=>`<button class="chip" data-m="${k}" style="background:${c}">${n}</button>`).join('')}</div>
+  <p id="msg" role="status"></p>
+  <button class="btn" id="go">Empezar</button>`);
+  const paint = () => {
+    $('#prev').innerHTML = ava({ display_name: $('#nm').value || '?', color }, 96);
+    document.querySelectorAll('.sw').forEach(b => b.classList.toggle('sel', b.dataset.c === color));
+    document.querySelectorAll('.chip').forEach(b => b.classList.toggle('sel', b.dataset.m === mood));
+  };
+  $('#nm').oninput = paint;
+  $('#sws').onclick = e => { const b = e.target.closest('.sw'); if (b) { color = b.dataset.c; paint(); } };
+  $('#mds').onclick = e => { const b = e.target.closest('.chip'); if (b) { mood = b.dataset.m; paint(); } };
+  paint();
+  $('#go').onclick = async () => {
+    const display_name = $('#nm').value.trim();
+    if (!display_name) return msg('Escribe cómo te llaman.');
+    const { error } = await sb.from('profiles').update({ display_name, color, mood }).eq('id', me.id);
+    if (error) return fail(error);
+    boot();
+  };
+}
+
+async function viewHome() {
+  const { data, error } = await sb.from('contacts')
+    .select('ring, profiles!contacts_contact_fkey(id, display_name, color, mood)').eq('owner', me.id);
+  const list = (data || []).filter(c => c.profiles);
+  const nuc = list.filter(c => c.ring === 'nucleo'), cer = list.filter(c => c.ring !== 'nucleo');
+  const card = c => `<button class="card" data-i="${list.indexOf(c)}">${ava(c.profiles, 64)}<b style="font-size:17px">${esc(c.profiles.display_name)}</b><span class="muted" style="color:${esc(c.profiles.color)}">${esc((MOODS[c.profiles.mood]||['—'])[0])}</span></button>`;
+  const row = c => `<button class="row" data-i="${list.indexOf(c)}">${ava(c.profiles)}<div><b>${esc(c.profiles.display_name)}</b><div class="muted">${esc((MOODS[c.profiles.mood]||['—'])[0])}</div></div></button>`;
+  R(`<div class="top"><span class="logo">HUSHLIGHT</span><span class="mood">${esc((MOODS[profile.mood]||['Calma'])[0])}</span></div>
+  <h1>Hola, ${esc(profile.display_name)}.</h1>
+  ${error ? `<p id="msg">${esc(error.message)}</p>` : '<p id="msg" role="status">' + esc(pendingError) + '</p>'}
+  ${list.length === 0 ? '<p class="muted">Aún no tienes a nadie en tu círculo. Genera un código e invita a la primera persona.</p>' : ''}
+  ${nuc.length ? `<div class="sec">Núcleo</div><div class="cards">${nuc.map(card).join('')}</div>` : ''}
+  ${cer.length ? `<div class="sec">Cercanos</div>${cer.map(row).join('')}` : ''}
+  <div style="margin-top:auto;display:flex;flex-direction:column;gap:10px">
+    <button class="btn" id="inv">Invitar a alguien</button>
+    <button class="btn2" id="red">Tengo un código</button>
+    <button class="link" id="out">Salir</button>
+  </div>`);
+  pendingError = '';
+  document.querySelectorAll('[data-i]').forEach(b => b.onclick = () => viewChat(list[+b.dataset.i].profiles));
+  $('#inv').onclick = viewInvite;
+  $('#red').onclick = viewRedeem;
+  $('#out').onclick = async () => { await sb.auth.signOut(); tab = 'entrar'; boot(); };
+}
+
+function viewInvite() {
+  let ring = 'nucleo';
+  R(`<div class="logo">INVITAR</div>
+  <h1>Invita a tu círculo.</h1>
+  <p class="muted">El Núcleo recibirá tus señales de emergencia. Podrás cambiarlo después.</p>
+  <div class="tabs"><button id="r1" class="on">Núcleo</button><button id="r2">Cercano</button></div>
+  <div id="out"></div>
+  <p id="msg" role="status"></p>
+  <button class="btn" id="gen">Generar código</button>
+  <button class="link" id="back">Volver</button>`);
+  const set = r => { ring = r; $('#r1').classList.toggle('on', r === 'nucleo'); $('#r2').classList.toggle('on', r === 'cercano'); };
+  $('#r1').onclick = () => set('nucleo'); $('#r2').onclick = () => set('cercano');
+  $('#back').onclick = viewHome;
+  $('#gen').onclick = async () => {
+    const { data, error } = await sb.rpc('create_invite', { p_ring: ring });
+    if (error) return fail(error);
+    $('#out').innerHTML = `<div class="code">${esc(data)}</div><p class="muted" style="text-align:center;margin-top:8px">Caduca en 24 horas · un solo uso</p>`;
+    $('#gen').textContent = 'Copiar código';
+    $('#gen').onclick = async () => { try { await navigator.clipboard.writeText(data); msg('Código copiado.'); } catch { msg('Cópialo a mano: ' + data); } };
+  };
+}
+
+function viewRedeem() {
+  R(`<div class="logo">CÓDIGO</div>
+  <h1>Usa un código de invitación.</h1>
+  <label for="code">Código</label>
+  <input id="code" autocomplete="off" style="text-transform:uppercase;letter-spacing:3px;text-align:center">
+  <p id="msg" role="status"></p>
+  <button class="btn" id="go">Unirme</button>
+  <button class="link" id="back">Volver</button>`);
+  $('#back').onclick = viewHome;
+  $('#go').onclick = async () => {
+    const code = $('#code').value.trim();
+    if (!code) return msg('Escribe el código.');
+    const { error } = await sb.rpc('redeem_invite', { p_code: code });
+    if (error) return fail(error);
+    viewHome();
+  };
+}
+
+async function viewChat(other) {
+  const { data: conv, error: ce } = await sb.from('conversations').select('id')
+    .or(`and(user_a.eq.${me.id},user_b.eq.${other.id}),and(user_a.eq.${other.id},user_b.eq.${me.id})`).maybeSingle();
+  if (ce || !conv) { pendingError = ce ? ce.message : 'No se encontró la conversación.'; return viewHome(); }
+  R(`<div class="chat">
+    <div class="chat-top"><button class="link" id="back">‹ Volver</button>${ava(other)}<div><b>${esc(other.display_name)}</b><div class="muted" style="color:${esc(other.color)}">${esc((MOODS[other.mood]||['—'])[0])}</div></div></div>
+    <p class="muted" id="live" style="margin:0;font-size:12px">Conectando…</p>
+    <div class="msgs" id="msgs"></div>
+    <p id="msg" role="status"></p>
+    <div class="bar"><input id="txt" placeholder="Escribe un mensaje" autocomplete="off" aria-label="Mensaje"><button class="send" id="send">Enviar</button></div>
+  </div>`);
+  $('#app').className = 'full';
+  const seen = new Map();
+  let poll = null, left = false;
+  const tick = m => m.status === 'read' ? '✓✓ Leído' : m.status === 'delivered' ? '✓✓' : '✓';
+  const draw = () => {
+    const box = $('#msgs'); if (!box) return;
+    const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+    const rows = [...seen.values()].sort((a, b) => a.created_at < b.created_at ? -1 : 1);
+    box.innerHTML = rows.map(m => {
+      const mine = m.sender_id === me.id;
+      const t = new Date(m.created_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+      return `<div class="b ${mine ? 'me' : 'ot'}"${mine ? ` style="background:${esc(profile.color)}"` : ''}>${esc(m.body)}<small>${t}${mine ? ' · ' + tick(m) : ''}</small></div>`;
+    }).join('');
+    if (atEnd) box.scrollTop = box.scrollHeight;
+  };
+  const markRead = async () => {
+    const ids = [...seen.values()].filter(m => m.sender_id !== me.id && m.status !== 'read').map(m => m.id);
+    if (!ids.length) return;
+    const { error } = await sb.from('messages').update({ status: 'read' }).in('id', ids);
+    if (!error) { ids.forEach(id => { seen.get(id).status = 'read'; }); draw(); }
+  };
+  const load = async () => {
+    const { data, error } = await sb.from('messages').select('*').eq('conversation_id', conv.id).order('created_at').limit(200);
+    if (error) return msg(error.message);
+    data.forEach(m => seen.set(m.id, m)); draw(); markRead();
+  };
+  const ch = sb.channel('chat-' + conv.id)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conv.id}` }, p => {
+      if (!p.new || !p.new.id) return;
+      seen.set(p.new.id, p.new); draw(); markRead();
+    })
+    .subscribe((st, err) => {
+      const lv = $('#live');
+      if (st === 'SUBSCRIBED') { clearInterval(poll); poll = null; load(); if (lv) lv.textContent = 'En vivo'; }
+      else if (!left) {
+        if (lv) lv.textContent = 'Sin conexión en vivo (' + st + (err ? ': ' + err.message : '') + '). Actualizando cada 3 s.';
+        if (!poll) poll = setInterval(load, 3000);
+      }
+    });
+  poll = setInterval(load, 3000); // respaldo si el tiempo real no conecta
+  load();
+  const send = async () => {
+    const body = $('#txt').value.trim(); if (!body) return;
+    $('#txt').value = '';
+    const { data, error } = await sb.from('messages').insert({ conversation_id: conv.id, sender_id: me.id, kind: 'text', body }).select().single();
+    if (error) { $('#txt').value = body; return msg(error.message); }
+    seen.set(data.id, data); draw(); $('#msgs').scrollTop = $('#msgs').scrollHeight;
+  };
+  $('#send').onclick = send;
+  $('#txt').onkeydown = e => { if (e.key === 'Enter') send(); };
+  $('#back').onclick = () => { left = true; clearInterval(poll); sb.removeChannel(ch); viewHome(); };
+}
+
+boot();
+</script>
+</body>
+</html>
