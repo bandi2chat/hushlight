@@ -51,9 +51,20 @@ button.card{font:inherit;color:inherit;text-align:left;align-items:flex-start}
 .send.rec{background:#FF7A90}
 audio{max-width:100%;height:40px}
 .send{height:54px;padding:0 16px;border:0;border-radius:27px;background:var(--cy);color:#0B0F1A;font-weight:700;font-size:16px}
+#alerts{position:sticky;top:0;z-index:10}
+.alert{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;font-weight:700;color:#0B0F1A}
+.alert.help{background:#FF7A90}.alert.ok{background:#7FD6C2}.alert.nophone{background:#FFD27A}
+.alert button{border:0;border-radius:16px;padding:8px 14px;background:#0B0F1A;color:#fff;font-weight:700}
+.b small{display:flex;gap:10px;align-items:center}
+.rp{border:0;background:none;color:inherit;font-size:11px;text-decoration:underline;padding:4px 0;opacity:.9}
+.quote{border-left:3px solid currentColor;padding:2px 8px;margin-bottom:6px;font-size:13px;opacity:.85;cursor:pointer}
+.flash{outline:2px solid var(--cy)}
+.replybar{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:var(--sf);border-left:4px solid var(--cy);font-size:13px;color:var(--mu)}
+.replybar[hidden]{display:none}
 </style>
 </head>
 <body>
+<div id="alerts" role="alert"></div>
 <main id="app" aria-live="polite"></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.104.0/dist/umd/supabase.js"></script>
 <script>
@@ -88,6 +99,7 @@ async function boot() {
     if (error) throw error;
     profile = data;
     if (!profile.display_name) return viewOnboarding();
+    startSignals();
     const code = sessionStorage.getItem('pending');
     if (code) {
       sessionStorage.removeItem('pending');
@@ -177,15 +189,17 @@ async function viewHome() {
   ${nuc.length ? `<div class="sec">Núcleo</div><div class="cards">${nuc.map(card).join('')}</div>` : ''}
   ${cer.length ? `<div class="sec">Cercanos</div>${cer.map(row).join('')}` : ''}
   <div style="margin-top:auto;display:flex;flex-direction:column;gap:10px">
+    <button class="btn" id="sos" style="background:#FFB43A">SOS · avisar a mi Núcleo</button>
     <button class="btn" id="inv">Invitar a alguien</button>
     <button class="btn2" id="red">Tengo un código</button>
     <button class="link" id="out">Salir</button>
   </div>`);
   pendingError = '';
   document.querySelectorAll('[data-i]').forEach(b => b.onclick = () => viewChat(list[+b.dataset.i].profiles));
+  $('#sos').onclick = viewSOS;
   $('#inv').onclick = viewInvite;
   $('#red').onclick = viewRedeem;
-  $('#out').onclick = async () => { await sb.auth.signOut(); tab = 'entrar'; boot(); };
+  $('#out').onclick = async () => { stopSignals(); await sb.auth.signOut(); tab = 'entrar'; boot(); };
 }
 
 function viewInvite() {
@@ -228,6 +242,69 @@ function viewRedeem() {
   };
 }
 
+const SIG = { help: 'necesita ayuda', ok: 'está bien', nophone: 'no tiene su celular, escríbele aquí' };
+let sigCh = null;
+function startSignals() {
+  if (sigCh) return;
+  refreshSignals();
+  sigCh = sb.channel('signals-' + me.id)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'signal_recipients', filter: `recipient_id=eq.${me.id}` }, refreshSignals)
+    .subscribe();
+}
+function stopSignals() {
+  if (sigCh) { sb.removeChannel(sigCh); sigCh = null; }
+  const b = $('#alerts'); if (b) b.innerHTML = '';
+}
+async function refreshSignals() {
+  const box = $('#alerts'); if (!box || !me) return;
+  const { data } = await sb.from('signal_recipients')
+    .select('signal_id, signals(kind, created_at), sender:profiles!signal_recipients_sender_id_fkey(display_name)')
+    .eq('recipient_id', me.id).eq('status', 'sent');
+  box.innerHTML = '';
+  (data || []).forEach(r => {
+    if (!r.signals) return;
+    const d = document.createElement('div'); d.className = 'alert ' + r.signals.kind;
+    const t = document.createElement('span');
+    const hora = new Date(r.signals.created_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+    t.textContent = (r.sender ? r.sender.display_name : 'Alguien') + ' ' + (SIG[r.signals.kind] || '') + ' · ' + hora;
+    const b = document.createElement('button'); b.textContent = 'Entendido';
+    b.onclick = async () => { await sb.rpc('read_signal', { p_id: r.signal_id }); refreshSignals(); };
+    d.append(t, b); box.appendChild(d);
+  });
+}
+
+function viewSOS() {
+  const KINDS = { help: ['Necesito ayuda', '#FF7A90'], ok: ['Estoy bien', '#7FD6C2'], nophone: ['Sin celular, escríbeme aquí', '#FFD27A'] };
+  let kind = 'help', iv = null;
+  R(`<div class="logo" style="color:#FFB43A">SEÑAL AL NÚCLEO</div>
+  <h1>Avisa a tu Núcleo.</h1>
+  <p class="muted">Lo verán en cuanto abran Hushlight. Por ahora no suena si la app está cerrada.</p>
+  <div class="chips" id="kinds">${Object.entries(KINDS).map(([k, [n, c]]) => `<button class="chip" data-k="${k}" style="background:${c}">${n}</button>`).join('')}</div>
+  <div id="who" style="margin-top:6px"></div>
+  <p id="msg" role="status"></p>
+  <button class="btn" id="go" style="background:#FFB43A">Enviar señal</button>
+  <button class="link" id="back">Volver</button>`);
+  const paint = () => document.querySelectorAll('#kinds .chip').forEach(b => b.classList.toggle('sel', b.dataset.k === kind));
+  $('#kinds').onclick = e => { const b = e.target.closest('.chip'); if (b) { kind = b.dataset.k; paint(); } };
+  paint();
+  const showWho = async sid => {
+    const { data } = await sb.from('signal_recipients')
+      .select('status, profiles!signal_recipients_recipient_id_fkey(display_name, color)').eq('signal_id', sid);
+    const box = $('#who'); if (!box) return;
+    box.innerHTML = (data || []).map(r => `<div class="row">${ava(r.profiles || { display_name: '?', color: '#9AA6C7' })}<b>${esc(r.profiles ? r.profiles.display_name : '')}</b><span class="muted" style="margin-left:auto">${r.status === 'read' ? '✓✓ Visto' : '✓ Enviado'}</span></div>`).join('');
+  };
+  $('#go').onclick = async () => {
+    if (!confirm('¿Enviar «' + KINDS[kind][0] + '» a tu Núcleo?')) return;
+    $('#go').disabled = true; msg('');
+    const { data, error } = await sb.rpc('send_signal', { p_kind: kind });
+    $('#go').disabled = false;
+    if (error) return fail(error);
+    msg('Señal enviada.'); showWho(data);
+    clearInterval(iv); iv = setInterval(() => showWho(data), 3000);
+  };
+  $('#back').onclick = () => { clearInterval(iv); viewHome(); };
+}
+
 async function viewChat(other) {
   const { data: conv, error: ce } = await sb.from('conversations').select('id')
     .or(`and(user_a.eq.${me.id},user_b.eq.${other.id}),and(user_a.eq.${other.id},user_b.eq.${me.id})`).maybeSingle();
@@ -237,11 +314,13 @@ async function viewChat(other) {
     <p class="muted" id="live" style="margin:0;font-size:12px">Conectando…</p>
     <div class="msgs" id="msgs"></div>
     <p id="msg" role="status"></p>
+    <div class="replybar" id="replybar" hidden><span id="replytxt"></span><button class="link" id="replyx" aria-label="Cancelar respuesta">✕</button></div>
     <button class="link" id="cancel" hidden>Cancelar grabación</button>
     <div class="bar"><input id="txt" placeholder="Escribe un mensaje" autocomplete="off" aria-label="Mensaje"><button class="send" id="mic" style="background:var(--vi)">Grabar</button><button class="send" id="send">Enviar</button></div>
   </div>`);
   $('#app').className = 'full';
   const seen = new Map();
+  let replying = null;
   let poll = null, left = false;
   const tick = m => m.status === 'read' ? '✓✓ Leído' : m.status === 'delivered' ? '✓✓' : '✓';
   const els = new Map(), urls = new Map();
@@ -265,12 +344,22 @@ async function viewChat(other) {
         el = document.createElement('div');
         el.className = 'b ' + (mine ? 'me' : 'ot');
         if (mine) el.style.background = profile.color;
+        const tgt = m.reply_to ? seen.get(m.reply_to) : null;
+        if (tgt) {
+          const q = document.createElement('div'); q.className = 'quote';
+          q.textContent = (tgt.sender_id === me.id ? 'Tú' : other.display_name) + ': ' + (tgt.kind === 'audio' ? 'Audio' : (tgt.body || '').slice(0, 80));
+          q.onclick = () => { const te = els.get(tgt.id); if (te) { te.scrollIntoView({ block: 'center' }); te.classList.add('flash'); setTimeout(() => te.classList.remove('flash'), 1200); } };
+          el.appendChild(q);
+        }
         if (m.kind === 'audio') { const a = document.createElement('audio'); a.controls = true; a.preload = 'metadata'; el.appendChild(a); audioSrc(m, a); }
         else { const sp = document.createElement('span'); sp.textContent = m.body; el.appendChild(sp); }
-        el.appendChild(document.createElement('small'));
+        const sm = document.createElement('small');
+        const meta = document.createElement('span'); meta.className = 'meta';
+        const rp = document.createElement('button'); rp.className = 'rp'; rp.textContent = 'Responder'; rp.onclick = () => setReply(m);
+        sm.append(meta, rp); el.appendChild(sm);
         els.set(m.id, el); box.appendChild(el);
       }
-      el.querySelector('small').textContent = t + (mine ? ' · ' + tick(m) : '');
+      el.querySelector('.meta').textContent = t + (mine ? ' · ' + tick(m) : '');
     });
     if (atEnd) box.scrollTop = box.scrollHeight;
   };
@@ -303,10 +392,17 @@ async function viewChat(other) {
   const send = async () => {
     const body = $('#txt').value.trim(); if (!body) return;
     $('#txt').value = '';
-    const { data, error } = await sb.from('messages').insert({ conversation_id: conv.id, sender_id: me.id, kind: 'text', body }).select().single();
+    const { data, error } = await sb.from('messages').insert({ conversation_id: conv.id, sender_id: me.id, kind: 'text', body, reply_to: replying ? replying.id : null }).select().single();
     if (error) { $('#txt').value = body; return msg(error.message); }
-    seen.set(data.id, data); draw(); $('#msgs').scrollTop = $('#msgs').scrollHeight;
+    clearReply(); seen.set(data.id, data); draw(); $('#msgs').scrollTop = $('#msgs').scrollHeight;
   };
+  const clearReply = () => { replying = null; $('#replybar').hidden = true; };
+  const setReply = m => {
+    replying = m;
+    $('#replytxt').textContent = 'Respondiendo a ' + (m.sender_id === me.id ? 'ti' : other.display_name) + ': ' + (m.kind === 'audio' ? 'Audio' : (m.body || '').slice(0, 60));
+    $('#replybar').hidden = false; $('#txt').focus();
+  };
+  $('#replyx').onclick = clearReply;
   let rec = null, chunks = [], timer = null, t0 = 0;
   const micBtn = $('#mic'), cancelBtn = $('#cancel');
   const fmt = n => Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0');
@@ -318,9 +414,9 @@ async function viewChat(other) {
     msg('Enviando audio…');
     const up = await sb.storage.from('audios').upload(path, blob, { contentType: base });
     if (up.error) return msg('No se pudo subir: ' + up.error.message);
-    const { data, error } = await sb.from('messages').insert({ conversation_id: conv.id, sender_id: me.id, kind: 'audio', audio_path: path }).select().single();
+    const { data, error } = await sb.from('messages').insert({ conversation_id: conv.id, sender_id: me.id, kind: 'audio', audio_path: path, reply_to: replying ? replying.id : null }).select().single();
     if (error) return msg(error.message);
-    msg(''); seen.set(data.id, data); draw(); $('#msgs').scrollTop = $('#msgs').scrollHeight;
+    msg(''); clearReply(); seen.set(data.id, data); draw(); $('#msgs').scrollTop = $('#msgs').scrollHeight;
   };
   const startRec = async () => {
     if (!navigator.mediaDevices || !window.MediaRecorder) return msg('Este navegador no permite grabar audio.');
