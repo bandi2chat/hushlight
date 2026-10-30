@@ -61,6 +61,8 @@ audio{max-width:100%;height:40px}
 .flash{outline:2px solid var(--cy)}
 .replybar{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:var(--sf);border-left:4px solid var(--cy);font-size:13px;color:var(--mu)}
 .replybar[hidden]{display:none}
+.day{align-self:center;font-size:12px;color:var(--mu);background:var(--sf);padding:4px 12px;border-radius:12px;margin:6px 0}
+.badge{background:var(--cy);color:#0B0F1A;border-radius:12px;min-width:22px;padding:2px 8px;font-size:12px;font-weight:700;text-align:center;margin-left:auto;align-self:flex-start}
 </style>
 </head>
 <body>
@@ -83,9 +85,9 @@ const ERR = {
   'Email not confirmed':'Falta confirmar el correo.'
 };
 const urlCode = (new URLSearchParams(location.search).get('c') || '').toUpperCase();
-let me = null, profile = null, tab = 'crear', pendingError = '';
+let me = null, profile = null, tab = 'crear', pendingError = '', inHome = false;
 
-const R = html => { $('#app').className = ''; $('#app').innerHTML = html; };
+const R = html => { inHome = false; $('#app').className = ''; $('#app').innerHTML = html; };
 const msg = t => { const m = $('#msg'); if (m) m.textContent = t || ''; };
 const fail = e => msg(ERR[e.message] || e.message);
 const ava = (p, size) => `<div class="ava" style="border-color:${esc(p.color)};${size?`width:${size}px;height:${size}px`:''}"><i style="background:${esc(p.color)}">${esc((p.display_name||'?').charAt(0).toUpperCase())}</i></div>`;
@@ -99,7 +101,7 @@ async function boot() {
     if (error) throw error;
     profile = data;
     if (!profile.display_name) return viewOnboarding();
-    startSignals();
+    startSignals(); startMsgs();
     const code = sessionStorage.getItem('pending');
     if (code) {
       sessionStorage.removeItem('pending');
@@ -178,10 +180,13 @@ function viewOnboarding() {
 async function viewHome() {
   const { data, error } = await sb.from('contacts')
     .select('ring, profiles!contacts_contact_fkey(id, display_name, color, mood)').eq('owner', me.id);
+  const { data: un } = await sb.from('messages').select('sender_id').neq('sender_id', me.id).neq('status', 'read').is('deleted_at', null).limit(1000);
+  const unread = {}; (un || []).forEach(x => { unread[x.sender_id] = (unread[x.sender_id] || 0) + 1; });
+  const badge = c => unread[c.profiles.id] ? `<span class="badge">${unread[c.profiles.id]}</span>` : '';
   const list = (data || []).filter(c => c.profiles);
   const nuc = list.filter(c => c.ring === 'nucleo'), cer = list.filter(c => c.ring !== 'nucleo');
-  const card = c => `<button class="card" data-i="${list.indexOf(c)}">${ava(c.profiles, 64)}<b style="font-size:17px">${esc(c.profiles.display_name)}</b><span class="muted" style="color:${esc(c.profiles.color)}">${esc((MOODS[c.profiles.mood]||['—'])[0])}</span></button>`;
-  const row = c => `<button class="row" data-i="${list.indexOf(c)}">${ava(c.profiles)}<div><b>${esc(c.profiles.display_name)}</b><div class="muted">${esc((MOODS[c.profiles.mood]||['—'])[0])}</div></div></button>`;
+  const card = c => `<button class="card" data-i="${list.indexOf(c)}">${ava(c.profiles, 64)}<b style="font-size:17px">${esc(c.profiles.display_name)}</b><span class="muted" style="color:${esc(c.profiles.color)}">${esc((MOODS[c.profiles.mood]||['—'])[0])}</span>${badge(c)}</button>`;
+  const row = c => `<button class="row" data-i="${list.indexOf(c)}">${ava(c.profiles)}<div><b>${esc(c.profiles.display_name)}</b><div class="muted">${esc((MOODS[c.profiles.mood]||['—'])[0])}</div></div>${badge(c)}</button>`;
   R(`<div class="top"><span class="logo">HUSHLIGHT</span><span class="mood">${esc((MOODS[profile.mood]||['Calma'])[0])}</span></div>
   <h1>Hola, ${esc(profile.display_name)}.</h1>
   ${error ? `<p id="msg">${esc(error.message)}</p>` : '<p id="msg" role="status">' + esc(pendingError) + '</p>'}
@@ -194,7 +199,7 @@ async function viewHome() {
     <button class="btn2" id="red">Tengo un código</button>
     <button class="link" id="out">Salir</button>
   </div>`);
-  pendingError = '';
+  pendingError = ''; inHome = true;
   document.querySelectorAll('[data-i]').forEach(b => b.onclick = () => viewChat(list[+b.dataset.i].profiles));
   $('#sos').onclick = viewSOS;
   $('#inv').onclick = viewInvite;
@@ -242,6 +247,17 @@ function viewRedeem() {
   };
 }
 
+let msgCh = null;
+function startMsgs() {
+  if (msgCh) return;
+  sb.from('messages').update({ status: 'delivered' }).neq('sender_id', me.id).eq('status', 'sent').then(() => {});
+  msgCh = sb.channel('msgs-' + me.id)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, p => {
+      const m = p.new; if (!m || m.sender_id === me.id) return;
+      sb.from('messages').update({ status: 'delivered' }).eq('id', m.id).eq('status', 'sent').then(() => {});
+      if (inHome) viewHome();
+    }).subscribe();
+}
 const SIG = { help: 'necesita ayuda', ok: 'está bien', nophone: 'no tiene su celular, escríbele aquí' };
 let sigCh = null;
 function startSignals() {
@@ -253,6 +269,7 @@ function startSignals() {
 }
 function stopSignals() {
   if (sigCh) { sb.removeChannel(sigCh); sigCh = null; }
+  if (msgCh) { sb.removeChannel(msgCh); msgCh = null; }
   const b = $('#alerts'); if (b) b.innerHTML = '';
 }
 async function refreshSignals() {
@@ -323,7 +340,18 @@ async function viewChat(other) {
   let replying = null;
   let poll = null, left = false;
   const tick = m => m.status === 'read' ? '✓✓ Leído' : m.status === 'delivered' ? '✓✓' : '✓';
-  const els = new Map(), urls = new Map();
+  const els = new Map(), urls = new Map(), quotes = new Map();
+  let lastDay = '', lastAt = '';
+  const sod = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dayLabel = d => {
+    const now = new Date(), diff = Math.round((sod(now) - sod(d)) / 864e5);
+    let t;
+    if (diff === 0) t = 'Hoy';
+    else if (diff === 1) t = 'Ayer';
+    else if (diff > 1 && diff < 7) t = d.toLocaleDateString('es', { weekday: 'long' });
+    else t = d.toLocaleDateString('es', { day: 'numeric', month: 'long', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  };
   const audioSrc = async (m, a) => {
     if (!urls.has(m.audio_path)) {
       const { data, error } = await sb.storage.from('audios').createSignedUrl(m.audio_path, 3600);
@@ -332,35 +360,64 @@ async function viewChat(other) {
     }
     a.src = urls.get(m.audio_path);
   };
-  const draw = () => {
+  const delMsg = async m => {
+    if (!confirm('¿Eliminar este mensaje para todos?')) return;
+    const { data, error } = await sb.rpc('delete_message', { p_id: m.id });
+    if (error) return msg(error.message);
+    if (data) sb.storage.from('audios').remove([data]);
+    seen.set(m.id, { ...seen.get(m.id), deleted_at: new Date().toISOString(), body: null, audio_path: null });
+    draw();
+  };
+  const fill = (el, m, mine) => {
+    el.innerHTML = ''; el.dataset.del = m.deleted_at ? '1' : '';
+    if (m.deleted_at) {
+      const sp = document.createElement('span'); sp.style.fontStyle = 'italic'; sp.textContent = 'Mensaje eliminado'; el.appendChild(sp);
+    } else {
+      const tgt = m.reply_to ? seen.get(m.reply_to) : null;
+      if (tgt) {
+        const q = document.createElement('div'); q.className = 'quote';
+        q.textContent = tgt.deleted_at ? 'Mensaje eliminado' : (tgt.sender_id === me.id ? 'Tú' : other.display_name) + ': ' + (tgt.kind === 'audio' ? 'Audio' : (tgt.body || '').slice(0, 80));
+        q.onclick = () => { const te = els.get(tgt.id); if (te) { te.scrollIntoView({ block: 'center' }); te.classList.add('flash'); setTimeout(() => te.classList.remove('flash'), 1200); } };
+        if (!quotes.has(tgt.id)) quotes.set(tgt.id, []);
+        quotes.get(tgt.id).push(q); el.appendChild(q);
+      }
+      if (m.kind === 'audio') { const a = document.createElement('audio'); a.controls = true; a.preload = 'metadata'; el.appendChild(a); audioSrc(m, a); }
+      else { const sp = document.createElement('span'); sp.textContent = m.body; el.appendChild(sp); }
+    }
+    const sm = document.createElement('small');
+    const meta = document.createElement('span'); meta.className = 'meta'; sm.appendChild(meta);
+    if (!m.deleted_at) {
+      const rp = document.createElement('button'); rp.className = 'rp'; rp.textContent = 'Responder'; rp.onclick = () => setReply(m); sm.appendChild(rp);
+      if (mine) { const dl = document.createElement('button'); dl.className = 'rp'; dl.textContent = 'Eliminar'; dl.onclick = () => delMsg(m); sm.appendChild(dl); }
+    }
+    el.appendChild(sm);
+  };
+  const draw = again => {
     const box = $('#msgs'); if (!box) return;
     const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
     const rows = [...seen.values()].sort((a, b) => a.created_at < b.created_at ? -1 : 1);
+    let stale = false;
     rows.forEach(m => {
-      const mine = m.sender_id === me.id;
-      const t = new Date(m.created_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+      const mine = m.sender_id === me.id, d = new Date(m.created_at);
+      const t = d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
       let el = els.get(m.id);
       if (!el) {
-        el = document.createElement('div');
-        el.className = 'b ' + (mine ? 'me' : 'ot');
-        if (mine) el.style.background = profile.color;
-        const tgt = m.reply_to ? seen.get(m.reply_to) : null;
-        if (tgt) {
-          const q = document.createElement('div'); q.className = 'quote';
-          q.textContent = (tgt.sender_id === me.id ? 'Tú' : other.display_name) + ': ' + (tgt.kind === 'audio' ? 'Audio' : (tgt.body || '').slice(0, 80));
-          q.onclick = () => { const te = els.get(tgt.id); if (te) { te.scrollIntoView({ block: 'center' }); te.classList.add('flash'); setTimeout(() => te.classList.remove('flash'), 1200); } };
-          el.appendChild(q);
+        if (m.created_at < lastAt) { stale = true; return; }
+        if (d.toDateString() !== lastDay) {
+          const sep = document.createElement('div'); sep.className = 'day'; sep.textContent = dayLabel(d); box.appendChild(sep);
+          lastDay = d.toDateString();
         }
-        if (m.kind === 'audio') { const a = document.createElement('audio'); a.controls = true; a.preload = 'metadata'; el.appendChild(a); audioSrc(m, a); }
-        else { const sp = document.createElement('span'); sp.textContent = m.body; el.appendChild(sp); }
-        const sm = document.createElement('small');
-        const meta = document.createElement('span'); meta.className = 'meta';
-        const rp = document.createElement('button'); rp.className = 'rp'; rp.textContent = 'Responder'; rp.onclick = () => setReply(m);
-        sm.append(meta, rp); el.appendChild(sm);
-        els.set(m.id, el); box.appendChild(el);
+        lastAt = m.created_at;
+        el = document.createElement('div'); el.className = 'b ' + (mine ? 'me' : 'ot');
+        if (mine) el.style.background = profile.color;
+        fill(el, m, mine); els.set(m.id, el); box.appendChild(el);
+      } else if (!!m.deleted_at !== (el.dataset.del === '1')) {
+        fill(el, m, mine);
+        (quotes.get(m.id) || []).forEach(q => { q.textContent = 'Mensaje eliminado'; });
       }
       el.querySelector('.meta').textContent = t + (mine ? ' · ' + tick(m) : '');
     });
+    if (stale && !again) { box.innerHTML = ''; els.clear(); quotes.clear(); lastDay = ''; lastAt = ''; return draw(true); }
     if (atEnd) box.scrollTop = box.scrollHeight;
   };
   const markRead = async () => {
@@ -388,6 +445,11 @@ async function viewChat(other) {
       }
     });
   poll = setInterval(load, 3000); // respaldo si el tiempo real no conecta
+  const wake = () => { if (!left) load(); };
+  const onVis = () => { if (document.visibilityState === 'visible') wake(); };
+  document.addEventListener('visibilitychange', onVis);
+  window.addEventListener('online', wake); window.addEventListener('focus', wake);
+  const safety = setInterval(wake, 20000);
   load();
   const send = async () => {
     const body = $('#txt').value.trim(); if (!body) return;
@@ -444,7 +506,7 @@ async function viewChat(other) {
   cancelBtn.onclick = () => { if (rec && rec.state === 'recording') { rec.cancelled = true; rec.stop(); } };
   $('#send').onclick = send;
   $('#txt').onkeydown = e => { if (e.key === 'Enter') send(); };
-  $('#back').onclick = () => { if (rec && rec.state === 'recording') { rec.cancelled = true; rec.stop(); } left = true; clearInterval(poll); sb.removeChannel(ch); viewHome(); };
+  $('#back').onclick = () => { if (rec && rec.state === 'recording') { rec.cancelled = true; rec.stop(); } left = true; clearInterval(poll); clearInterval(safety); document.removeEventListener('visibilitychange', onVis); window.removeEventListener('online', wake); window.removeEventListener('focus', wake); sb.removeChannel(ch); viewHome(); };
 }
 
 boot();
