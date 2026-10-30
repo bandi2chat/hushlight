@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hushlight</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1B2240">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Hushlight">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Space+Grotesk:wght@400;500;700&display=swap">
 <style>
 :root{--bg:#1B2240;--sf:#262F52;--ch:#2B3560;--bd:#3F4B78;--tx:#E8EEFF;--mu:#9AA6C7;--cy:#3DF2E0;--vi:#8B7BFF}
@@ -76,6 +82,7 @@ const SUPABASE_KEY = 'sb_publishable_CvLkBVcd7PnT9TXDUiQ-aQ_pQ3wKbSV';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const $ = s => document.querySelector(s);
+const logoSvg = w => `<svg viewBox="0 0 400 400" width="${w}" height="${w}" role="img" aria-label="Hushlight"><defs><linearGradient id="alg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9FFFF3"/><stop offset=".5" stop-color="#3DF2E0"/><stop offset="1" stop-color="#8B7BFF"/></linearGradient><radialGradient id="blg" cx="50%" cy="50%" r="50%"><stop offset=".6" stop-color="#3DF2E0" stop-opacity=".4"/><stop offset="1" stop-color="#3DF2E0" stop-opacity="0"/></radialGradient><linearGradient id="tlg" gradientUnits="userSpaceOnUse" x1="341.5" y1="256.8" x2="261.1" y2="340"><stop offset="0" stop-color="#3DF2E0" stop-opacity="0"/><stop offset="1" stop-color="#9FFFF3" stop-opacity=".95"/></linearGradient><filter id="flg" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><circle cx="200" cy="200" r="190" fill="url(#blg)"/><path d="M47.4 159.1A158 158 0 0 1 159.1 47.4" fill="none" stroke="#3DF2E0" stroke-opacity=".7" stroke-width="5" stroke-linecap="round"/><path d="M28.1 153.9A178 178 0 0 1 153.9 28.1" fill="none" stroke="#3DF2E0" stroke-opacity=".35" stroke-width="5" stroke-linecap="round"/><circle cx="200" cy="200" r="136" fill="url(#alg)"/><circle cx="216" cy="216" r="120" fill="#0F1430" stroke="#3DF2E0" stroke-opacity=".4" stroke-width="2"/><path d="M341.5 256.8A132 132 0 0 1 261.1 340" fill="none" stroke="url(#tlg)" stroke-width="5" stroke-linecap="round"/><circle cx="261.1" cy="340" r="8" fill="#FFFFFF" filter="url(#flg)"/><g transform="translate(208 205) scale(.92)" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="22"><path d="M-8 -50V20Q-8 40 12 40H64" stroke="#9FFFF3"/><path d="M-56 -58V58" stroke="#FFFFFF"/><path d="M-56 14C-56 -12 -40 -32 -8 -32C24 -32 40 -12 40 14V58" stroke="#FFFFFF"/><path d="M-8 -46V-18" stroke="#0F1430" stroke-width="34"/><path d="M-8 -50V-6" stroke="#9FFFF3"/><path d="M40 24V56" stroke="#0F1430" stroke-width="34"/><path d="M40 14V58" stroke="#FFFFFF"/><circle cx="64" cy="40" r="10" fill="#FFFFFF" stroke="none" filter="url(#flg)"/></g><text x="216" y="298" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-weight="500" font-size="16" letter-spacing="7" fill="#9FFFF3">chat</text></svg>`;
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const COLORS = ['#3DF2E0','#8B7BFF','#F2B8FF','#FFD27A','#FF7A90'];
 const MOODS = {calma:['Calma','#7FD6C2'], enfocado:['Enfocado','#3DF2E0'], energia:['Energía','#FFD27A'], noche:['Noche','#8B7BFF']};
@@ -85,6 +92,10 @@ const ERR = {
   'Email not confirmed':'Falta confirmar el correo.'
 };
 const urlCode = (new URLSearchParams(location.search).get('c') || '').toUpperCase();
+let installEv = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; if (inHome) viewHome(); });
+const isIOS = /iphone|ipad/i.test(navigator.userAgent) && !navigator.standalone;
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 let me = null, profile = null, tab = 'crear', pendingError = '', inHome = false;
 
 const R = html => { inHome = false; $('#app').className = ''; $('#app').innerHTML = html; };
@@ -117,7 +128,8 @@ async function boot() {
 
 function viewAuth() {
   const crear = tab === 'crear';
-  R(`<div class="logo">HUSHLIGHT</div>
+  R(`<div style="align-self:center;margin-top:-16px">${logoSvg(210)}</div>
+  <div class="logo" style="text-align:center;margin-top:-18px">HUSHLIGHT</div>
   <h1>Entra con tu código, no con tu número.</h1>
   <p class="muted">Tu círculo íntimo, disponible en cualquier navegador.</p>
   <div class="tabs"><button id="t1" class="${crear?'on':''}">Crear cuenta</button><button id="t2" class="${crear?'':'on'}">Ya tengo cuenta</button></div>
@@ -197,11 +209,14 @@ async function viewHome() {
     <button class="btn" id="sos" style="background:#FFB43A">SOS · avisar a mi Núcleo</button>
     <button class="btn" id="inv">Invitar a alguien</button>
     <button class="btn2" id="red">Tengo un código</button>
+    ${installEv ? '<button class="btn2" id="inst">Instalar Hushlight en este dispositivo</button>' : ''}
+    ${isIOS ? '<p class="muted" style="text-align:center">En iPhone: toca Compartir y luego «Agregar a pantalla de inicio».</p>' : ''}
     <button class="link" id="out">Salir</button>
   </div>`);
   pendingError = ''; inHome = true;
   document.querySelectorAll('[data-i]').forEach(b => b.onclick = () => viewChat(list[+b.dataset.i].profiles));
   $('#sos').onclick = viewSOS;
+  if ($('#inst')) $('#inst').onclick = async () => { installEv.prompt(); await installEv.userChoice; installEv = null; viewHome(); };
   $('#inv').onclick = viewInvite;
   $('#red').onclick = viewRedeem;
   $('#out').onclick = async () => { stopSignals(); await sb.auth.signOut(); tab = 'entrar'; boot(); };
