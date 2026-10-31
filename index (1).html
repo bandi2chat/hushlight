@@ -195,6 +195,7 @@ async function viewHome() {
   const { data: un } = await sb.from('messages').select('sender_id').neq('sender_id', me.id).neq('status', 'read').is('deleted_at', null).limit(1000);
   const unread = {}; (un || []).forEach(x => { unread[x.sender_id] = (unread[x.sender_id] || 0) + 1; });
   const badge = c => unread[c.profiles.id] ? `<span class="badge">${unread[c.profiles.id]}</span>` : '';
+  const ps = await pushState();
   const list = (data || []).filter(c => c.profiles);
   const nuc = list.filter(c => c.ring === 'nucleo'), cer = list.filter(c => c.ring !== 'nucleo');
   const card = c => `<button class="card" data-i="${list.indexOf(c)}">${ava(c.profiles, 64)}<b style="font-size:17px">${esc(c.profiles.display_name)}</b><span class="muted" style="color:${esc(c.profiles.color)}">${esc((MOODS[c.profiles.mood]||['—'])[0])}</span>${badge(c)}</button>`;
@@ -209,6 +210,10 @@ async function viewHome() {
     <button class="btn" id="sos" style="background:#FFB43A">SOS · avisar a mi Núcleo</button>
     <button class="btn" id="inv">Invitar a alguien</button>
     <button class="btn2" id="red">Tengo un código</button>
+    ${ps === 'off' ? '<button class="btn2" id="push">Activar notificaciones</button>' : ''}
+    ${ps === 'on' ? '<p class="muted" style="text-align:center">🔔 Notificaciones activas</p>' : ''}
+    ${ps === 'denied' ? '<p class="muted" style="text-align:center">Las notificaciones están bloqueadas. Actívalas en Ajustes del iPhone → Notificaciones → Hushlight.</p>' : ''}
+    ${ps === 'unsupported' ? '<p class="muted" style="text-align:center">Para recibir avisos en iPhone: toca Compartir → «Agregar a pantalla de inicio», abre Hushlight desde su icono y toca «Activar notificaciones». Requiere iOS 16.4 o superior.</p>' : ''}
     ${installEv ? '<button class="btn2" id="inst">Instalar Hushlight en este dispositivo</button>' : ''}
     ${isIOS ? '<p class="muted" style="text-align:center">En iPhone: toca Compartir y luego «Agregar a pantalla de inicio».</p>' : ''}
     <button class="link" id="out">Salir</button>
@@ -216,10 +221,11 @@ async function viewHome() {
   pendingError = ''; inHome = true;
   document.querySelectorAll('[data-i]').forEach(b => b.onclick = () => viewChat(list[+b.dataset.i].profiles));
   $('#sos').onclick = viewSOS;
+  if ($('#push')) $('#push').onclick = enablePush;
   if ($('#inst')) $('#inst').onclick = async () => { installEv.prompt(); await installEv.userChoice; installEv = null; viewHome(); };
   $('#inv').onclick = viewInvite;
   $('#red').onclick = viewRedeem;
-  $('#out').onclick = async () => { stopSignals(); await sb.auth.signOut(); tab = 'entrar'; boot(); };
+  $('#out').onclick = async () => { stopSignals(); try { const rg = await navigator.serviceWorker.getRegistration(); const sb2 = rg && await rg.pushManager.getSubscription(); if (sb2) await sb.rpc('drop_push', { p_endpoint: sb2.endpoint }); } catch (_) {} await sb.auth.signOut(); tab = 'entrar'; boot(); };
 }
 
 function viewInvite() {
@@ -272,6 +278,31 @@ function startMsgs() {
       sb.from('messages').update({ status: 'delivered' }).eq('id', m.id).eq('status', 'sent').then(() => {});
       if (inHome) viewHome();
     }).subscribe();
+}
+const VAPID_PUBLIC = 'BHhGUBE-_Vt2njlispRw50DLdh8OcqRRw65fNKe3qh1gyfFlWxUdWzFeB5FvwvSiGVhE97oupfDf63RNvU2kRjs';
+const b64 = x => { const r = atob((x + '='.repeat((4 - x.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, c => c.charCodeAt(0)); };
+async function pushState() {
+  if (!('serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window)) return 'unsupported';
+  if (Notification.permission === 'denied') return 'denied';
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = reg && await reg.pushManager.getSubscription();
+    return sub && Notification.permission === 'granted' ? 'on' : 'off';
+  } catch (_) { return 'off'; }
+}
+async function enablePush() {
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { pendingError = 'No diste permiso para las notificaciones.'; return viewHome(); }
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(VAPID_PUBLIC) });
+    const j = sub.toJSON();
+    const { error } = await sb.rpc('save_push', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth });
+    if (error) throw error;
+    pendingError = 'Notificaciones activadas.';
+  } catch (e) { pendingError = 'No se pudo activar: ' + e.message; }
+  viewHome();
 }
 const SIG = { help: 'necesita ayuda', ok: 'está bien', nophone: 'no tiene su celular, escríbele aquí' };
 let sigCh = null;
