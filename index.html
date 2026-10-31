@@ -392,7 +392,7 @@ async function viewChat(other) {
   const dayLabel = d => {
     const now = new Date(), diff = Math.round((sod(now) - sod(d)) / 864e5);
     let t;
-    if (diff === 0) t = 'Hoy';
+    if (diff <= 0) t = 'Hoy';
     else if (diff === 1) t = 'Ayer';
     else if (diff > 1 && diff < 7) t = d.toLocaleDateString('es', { weekday: 'long' });
     else t = d.toLocaleDateString('es', { day: 'numeric', month: 'long', year: d.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
@@ -473,8 +473,17 @@ async function viewChat(other) {
     if (!error) { ids.forEach(id => { seen.get(id).status = 'read'; }); draw(); }
   };
   const load = async () => {
-    const { data, error } = await sb.from('messages').select('*').eq('conversation_id', conv.id).order('created_at').limit(200);
-    if (error) return msg(error.message);
+    let { data, error } = await sb.from('messages').select('*').eq('conversation_id', conv.id).order('created_at', { ascending: false }).limit(200);
+    if (error && /jwt|expired|401/i.test(error.message)) { await sb.auth.refreshSession(); ({ data, error } = await sb.from('messages').select('*').eq('conversation_id', conv.id).order('created_at', { ascending: false }).limit(200)); }
+    if (error) return msg('Sin conexión con el servidor: ' + error.message);
+    if (!$('#msgs')) return;
+    data.reverse();
+    if (data.length < 200) { // lo que no está en el servidor no se muestra
+      const ok = new Set(data.map(m => m.id)); let gone = false;
+      [...seen.keys()].forEach(id => { if (!ok.has(id)) { seen.delete(id); gone = true; } });
+      if (gone) { const box = $('#msgs'); box.innerHTML = ''; els.clear(); quotes.clear(); lastDay = ''; lastAt = ''; }
+    }
+    msg('');
     data.forEach(m => seen.set(m.id, m)); draw(); markRead();
   };
   const ch = sb.channel('chat-' + conv.id)
@@ -500,8 +509,10 @@ async function viewChat(other) {
   const send = async () => {
     const body = $('#txt').value.trim(); if (!body) return;
     $('#txt').value = '';
-    const { data, error } = await sb.from('messages').insert({ conversation_id: conv.id, sender_id: me.id, kind: 'text', body, reply_to: replying ? replying.id : null }).select().single();
-    if (error) { $('#txt').value = body; return msg(error.message); }
+    const row = { conversation_id: conv.id, sender_id: me.id, kind: 'text', body, reply_to: replying ? replying.id : null };
+    let { data, error } = await sb.from('messages').insert(row).select().single();
+    if (error && /jwt|expired|401/i.test(error.message)) { await sb.auth.refreshSession(); ({ data, error } = await sb.from('messages').insert(row).select().single()); }
+    if (error) { $('#txt').value = body; return msg('No se envió: ' + error.message); }
     clearReply(); seen.set(data.id, data); draw(); $('#msgs').scrollTop = $('#msgs').scrollHeight;
   };
   const clearReply = () => { replying = null; $('#replybar').hidden = true; };
