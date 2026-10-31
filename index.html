@@ -20,7 +20,7 @@ h1{margin:6px 0 0;font-size:32px;line-height:1.15}
 .muted{color:var(--mu);font-size:15px;margin:0}
 label{font-size:14px;color:var(--mu)}
 input{height:54px;border-radius:14px;border:1px solid var(--bd);background:var(--sf);color:var(--tx);padding:0 16px;font-size:17px;font-family:inherit}
-button{font-family:inherit;cursor:pointer}
+button{font-family:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .btn{height:54px;border:0;border-radius:27px;background:var(--cy);color:#0B0F1A;font-weight:700;font-size:17px}
 .btn2{height:50px;border-radius:25px;border:1px solid var(--vi);background:transparent;color:#C9C2FF;font-size:16px}
 .link{border:0;background:none;color:var(--mu);text-decoration:underline;font-size:15px;padding:8px}
@@ -506,14 +506,24 @@ async function viewChat(other) {
   window.addEventListener('online', wake); window.addEventListener('focus', wake);
   const safety = setInterval(wake, 20000);
   load();
+  let sending = false;
   const send = async () => {
+    if (sending) return;
     const body = $('#txt').value.trim(); if (!body) return;
-    $('#txt').value = '';
+    sending = true; $('#txt').value = ''; $('#txt').focus();
+    const box = $('#msgs');
+    const tmp = document.createElement('div');
+    tmp.className = 'b me'; tmp.style.background = profile.color; tmp.style.opacity = '.6'; tmp.textContent = body;
+    box.appendChild(tmp); box.scrollTop = box.scrollHeight;
     const row = { conversation_id: conv.id, sender_id: me.id, kind: 'text', body, reply_to: replying ? replying.id : null };
-    let { data, error } = await sb.from('messages').insert(row).select().single();
-    if (error && /jwt|expired|401/i.test(error.message)) { await sb.auth.refreshSession(); ({ data, error } = await sb.from('messages').insert(row).select().single()); }
-    if (error) { $('#txt').value = body; return msg('No se envió: ' + error.message); }
-    clearReply(); seen.set(data.id, data); draw(); $('#msgs').scrollTop = $('#msgs').scrollHeight;
+    let data = null, error = null;
+    try {
+      ({ data, error } = await sb.from('messages').insert(row).select().single());
+      if (error && /jwt|expired|401/i.test(error.message)) { await sb.auth.refreshSession(); ({ data, error } = await sb.from('messages').insert(row).select().single()); }
+    } catch (e) { error = e; }
+    tmp.remove(); sending = false;
+    if (error) { if (!$('#txt').value) $('#txt').value = body; return msg('No se envió: ' + (error.message || 'sin conexión')); }
+    msg(''); clearReply(); seen.set(data.id, data); draw(); box.scrollTop = box.scrollHeight;
   };
   const clearReply = () => { replying = null; $('#replybar').hidden = true; };
   const setReply = m => {
@@ -561,6 +571,7 @@ async function viewChat(other) {
   };
   micBtn.onclick = () => { if (rec && rec.state === 'recording') rec.stop(); else startRec(); };
   cancelBtn.onclick = () => { if (rec && rec.state === 'recording') { rec.cancelled = true; rec.stop(); } };
+  $('#send').onpointerdown = e => e.preventDefault(); // mantiene el teclado abierto
   $('#send').onclick = send;
   $('#txt').onkeydown = e => { if (e.key === 'Enter') send(); };
   $('#back').onclick = () => { if (rec && rec.state === 'recording') { rec.cancelled = true; rec.stop(); } left = true; clearInterval(poll); clearInterval(safety); document.removeEventListener('visibilitychange', onVis); window.removeEventListener('online', wake); window.removeEventListener('focus', wake); sb.removeChannel(ch); viewHome(); };
