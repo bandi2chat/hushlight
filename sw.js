@@ -1,6 +1,6 @@
 // Hushlight · archivo de apoyo de la app instalable
 // Siempre intenta cargar la versión más nueva; si no hay internet, usa la última guardada.
-const CACHE = 'hushlight-v2';
+const CACHE = 'hushlight-v6';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
