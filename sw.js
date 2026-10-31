@@ -1,6 +1,6 @@
 // Hushlight · archivo de apoyo de la app instalable
 // Siempre intenta cargar la versión más nueva; si no hay internet, usa la última guardada.
-const CACHE = 'hushlight-v7';
+const CACHE = 'hushlight-v9';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)));
@@ -23,9 +23,21 @@ self.addEventListener('fetch', e => {
 self.addEventListener('push', e => {
   let d = {};
   try { d = e.data.json(); } catch (_) {}
-  e.waitUntil(self.registration.showNotification(d.title || 'Hushlight', {
-    body: d.body || '', tag: d.tag || undefined, icon: 'icon-192.png', badge: 'icon-192.png', data: { url: d.url || './' }
-  }));
+  e.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const open = wins.some(c => c.visibilityState === 'visible');
+    // App abierta y a la vista: aviso mudo que se retira solo. App cerrada o en segundo plano: aviso normal con sonido.
+    await self.registration.showNotification(d.title || 'Hushlight', {
+      body: d.body || '', tag: d.tag || undefined, icon: 'icon-192.png', badge: 'icon-192.png',
+      silent: open, renotify: !open && !!d.tag, data: { url: d.url || './' }
+    });
+    if (typeof d.badge === 'number' && self.navigator && self.navigator.setAppBadge) { try { await self.navigator.setAppBadge(d.badge); } catch (_) {} }
+    if (open) {
+      await new Promise(r => setTimeout(r, 700));
+      const ns = await self.registration.getNotifications({ tag: d.tag || undefined });
+      ns.forEach(n => n.close());
+    }
+  })());
 });
 self.addEventListener('notificationclick', e => {
   e.notification.close();

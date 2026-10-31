@@ -211,17 +211,21 @@ async function viewHome() {
     <button class="btn" id="inv">Invitar a alguien</button>
     <button class="btn2" id="red">Tengo un código</button>
     ${ps === 'off' ? '<button class="btn2" id="push">Activar notificaciones</button>' : ''}
-    ${ps === 'on' ? '<p class="muted" style="text-align:center">🔔 Notificaciones activas</p>' : ''}
+    ${ps === 'on' ? '<p class="muted" style="text-align:center">🔔 Notificaciones activas</p><button class="btn2" id="ptest">Probar notificación</button>' : ''}
     ${ps === 'denied' ? '<p class="muted" style="text-align:center">Las notificaciones están bloqueadas. Actívalas en Ajustes del iPhone → Notificaciones → Hushlight.</p>' : ''}
     ${ps === 'unsupported' ? '<p class="muted" style="text-align:center">Para recibir avisos en iPhone: toca Compartir → «Agregar a pantalla de inicio», abre Hushlight desde su icono y toca «Activar notificaciones». Requiere iOS 16.4 o superior.</p>' : ''}
     ${installEv ? '<button class="btn2" id="inst">Instalar Hushlight en este dispositivo</button>' : ''}
     ${isIOS ? '<p class="muted" style="text-align:center">En iPhone: toca Compartir y luego «Agregar a pantalla de inicio».</p>' : ''}
+    <p class="muted" id="ver" style="text-align:center;margin:0">Versión ${APP_VERSION}</p>
     <button class="link" id="out">Salir</button>
   </div>`);
   pendingError = ''; inHome = true;
   document.querySelectorAll('[data-i]').forEach(b => b.onclick = () => viewChat(list[+b.dataset.i].profiles));
   $('#sos').onclick = viewSOS;
   if ($('#push')) $('#push').onclick = enablePush;
+  if ($('#ptest')) $('#ptest').onclick = async () => { try { const reg = await navigator.serviceWorker.ready; await reg.showNotification('Hushlight', { body: 'Así te llegarán los avisos 🔔', icon: 'icon-192.png', tag: 'prueba' }); } catch (e) { pendingError = 'No se pudo probar: ' + e.message; viewHome(); } };
+  if (ps === 'on') syncPush();
+  updateBadge();
   if ($('#inst')) $('#inst').onclick = async () => { installEv.prompt(); await installEv.userChoice; installEv = null; viewHome(); };
   $('#inv').onclick = viewInvite;
   $('#red').onclick = viewRedeem;
@@ -277,8 +281,30 @@ function startMsgs() {
       const m = p.new; if (!m || m.sender_id === me.id) return;
       sb.from('messages').update({ status: 'delivered' }).eq('id', m.id).eq('status', 'sent').then(() => {});
       if (inHome) viewHome();
+      updateBadge();
     }).subscribe();
 }
+const APP_VERSION = '9';
+async function updateApp() {
+  const b = $('#upd'); if (b) { b.disabled = true; b.textContent = 'Actualizando…'; }
+  try {
+    if ('serviceWorker' in navigator) { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.unregister())); }
+    if (window.caches) { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); }
+  } catch (_) {}
+  location.replace(location.pathname + '?v=' + Date.now());
+}
+let badgeBusy = false;
+async function updateBadge() {
+  if (!me || badgeBusy) return; badgeBusy = true;
+  try {
+    const a = await sb.from('messages').select('id', { count: 'exact', head: true }).neq('sender_id', me.id).neq('status', 'read').is('deleted_at', null);
+    const c = await sb.from('signal_recipients').select('signal_id', { count: 'exact', head: true }).eq('recipient_id', me.id).eq('status', 'sent');
+    const n = (a.count || 0) + (c.count || 0);
+    if ('setAppBadge' in navigator) { if (n > 0) await navigator.setAppBadge(n); else await navigator.clearAppBadge(); }
+  } catch (_) {}
+  badgeBusy = false;
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) updateBadge(); });
 const VAPID_PUBLIC = 'BHhGUBE-_Vt2njlispRw50DLdh8OcqRRw65fNKe3qh1gyfFlWxUdWzFeB5FvwvSiGVhE97oupfDf63RNvU2kRjs';
 const b64 = x => { const r = atob((x + '='.repeat((4 - x.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, c => c.charCodeAt(0)); };
 async function pushState() {
@@ -290,10 +316,19 @@ async function pushState() {
     return sub && Notification.permission === 'granted' ? 'on' : 'off';
   } catch (_) { return 'off'; }
 }
+async function syncPush() {
+  try {
+    const reg = await navigator.serviceWorker.getRegistration(); const sub = reg && await reg.pushManager.getSubscription(); if (!sub) return;
+    const j = sub.toJSON(); await sb.rpc('save_push', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth });
+  } catch (_) {}
+}
+let pushBusy = false;
 async function enablePush() {
+  if (pushBusy) return; pushBusy = true;
+  const bt = $('#push'); if (bt) { bt.disabled = true; bt.textContent = 'Activando…'; }
   try {
     const perm = await Notification.requestPermission();
-    if (perm !== 'granted') { pendingError = 'No diste permiso para las notificaciones.'; return viewHome(); }
+    if (perm !== 'granted') { pendingError = 'No diste permiso para las notificaciones.'; pushBusy = false; return viewHome(); }
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
     if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(VAPID_PUBLIC) });
@@ -302,7 +337,7 @@ async function enablePush() {
     if (error) throw error;
     pendingError = 'Notificaciones activadas.';
   } catch (e) { pendingError = 'No se pudo activar: ' + e.message; }
-  viewHome();
+  pushBusy = false; viewHome();
 }
 const SIG = { help: 'necesita ayuda', ok: 'está bien', nophone: 'no tiene su celular, escríbele aquí' };
 let sigCh = null;
@@ -323,7 +358,7 @@ async function refreshSignals() {
   const { data } = await sb.from('signal_recipients')
     .select('signal_id, signals(kind, created_at), sender:profiles!signal_recipients_sender_id_fkey(display_name)')
     .eq('recipient_id', me.id).eq('status', 'sent');
-  box.innerHTML = '';
+  box.innerHTML = ''; updateBadge();
   (data || []).forEach(r => {
     if (!r.signals) return;
     const d = document.createElement('div'); d.className = 'alert ' + r.signals.kind;
@@ -470,7 +505,7 @@ async function viewChat(other) {
     const ids = [...seen.values()].filter(m => m.sender_id !== me.id && m.status !== 'read').map(m => m.id);
     if (!ids.length) return;
     const { error } = await sb.from('messages').update({ status: 'read' }).in('id', ids);
-    if (!error) { ids.forEach(id => { seen.get(id).status = 'read'; }); draw(); }
+    if (!error) { ids.forEach(id => { seen.get(id).status = 'read'; }); draw(); updateBadge(); }
   };
   const load = async () => {
     let { data, error } = await sb.from('messages').select('*').eq('conversation_id', conv.id).order('created_at', { ascending: false }).limit(200);
