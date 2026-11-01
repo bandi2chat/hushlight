@@ -34,8 +34,8 @@ button{font-family:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-
 .ava{width:48px;height:48px;border-radius:50%;border:3px solid;box-sizing:border-box;padding:3px;flex:none}
 .ava i{display:flex;width:100%;height:100%;border-radius:50%;color:#0B0F1A;font-weight:700;align-items:center;justify-content:center;font-style:normal}
 .row{display:flex;gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--ch)}
-.cards{display:flex;gap:12px}
-.card{flex:1;padding:16px;border-radius:22px;background:var(--sf);border:1px solid var(--bd);display:flex;flex-direction:column;gap:6px}
+.cards{display:flex;flex-direction:column;gap:10px}
+.card{padding:12px 14px;border-radius:20px;background:var(--sf);border:1px solid var(--bd);display:flex;gap:12px;align-items:center;text-align:left;color:var(--tx)}
 .sec{font-size:14px;color:var(--mu);margin-top:10px}
 .code{font-family:Orbitron,sans-serif;font-size:26px;letter-spacing:4px;text-align:center;padding:18px;border-radius:18px;background:var(--sf);border:2px solid var(--cy)}
 .top{display:flex;justify-content:space-between;align-items:center}
@@ -46,6 +46,33 @@ button{font-family:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-
 .acc summary::-webkit-details-marker{display:none}
 .acc>*:not(summary){margin-top:10px}
 .acc .btn2{width:100%}
+.ct{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;text-align:left}.ct b{font-size:16px}
+.pv{font-size:13px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pv i{font-style:normal}
+.cm{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}.cm small{font-size:11px;color:var(--mu)}.cm .badge{margin-left:0;align-self:auto}
+.q{font-size:13px;color:var(--mu)}
+.moods{display:flex;gap:8px;flex-wrap:wrap}
+.mchip{border:1px solid var(--bd);background:transparent;color:var(--mu);border-radius:16px;padding:8px 14px;font-size:14px}
+.mchip.on{background:var(--cy);border-color:var(--cy);color:#0B0F1A;font-weight:700}
+.day{background:var(--sf);border:1px solid var(--bd);border-radius:20px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.dayh{display:flex;justify-content:space-between;align-items:center}
+.dayh b{font-size:16px}.dayh .muted{font-size:13px}.day .link{text-align:left;align-self:flex-start}.day{padding:14px 14px}
+.task{display:flex;align-items:center;gap:10px}
+.chk{width:24px;height:24px;border-radius:50%;border:2px solid var(--cy);background:transparent;flex:none;padding:0}
+.te{font-size:20px;flex:none}.tt{flex:1;min-width:0;font-size:15px;overflow-wrap:anywhere}
+.tm{font-size:12px;color:#C9C2FF;background:var(--ch);padding:3px 8px;border-radius:10px;flex:none}.tm.late{color:#FFB43A}
+.tx{border:0;background:none;color:var(--mu);font-size:20px;padding:0 4px;flex:none}
+.tadd{display:flex;gap:8px}.tadd input{flex:1;min-width:0;height:44px;font-size:15px}
+.tadd button{width:44px;height:44px;border-radius:14px;border:0;background:var(--cy);color:#0B0F1A;font-size:22px;font-weight:700}
+#topts{display:flex;flex-direction:column;gap:10px}#topts[hidden]{display:none}
+.emos{display:flex;flex-wrap:wrap;gap:6px}.emo{width:38px;height:38px;border-radius:12px;border:1px solid var(--bd);background:transparent;font-size:20px;padding:0}.emo.on{border-color:var(--cy);background:var(--ch)}
+.tdt{display:flex;gap:10px}.tdt label{flex:1;display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mu)}.tdt input{height:42px;font-size:15px;padding:0 10px;min-width:0}
+.act{flex:1;border:0;border-radius:24px;padding:14px 12px;display:flex;align-items:center;gap:10px;text-align:left;color:#0B0F1A;min-width:0}
+.act.sos{background:linear-gradient(135deg,#FFC15A,#FF6B7A)}.act.inv{background:linear-gradient(135deg,#3DF2E0,#8B7BFF)}
+.act .ic{width:40px;height:40px;border-radius:14px;background:rgba(255,255,255,.4);display:grid;place-items:center;flex:none}
+.act.sos .ic{animation:pulso 2.2s infinite}
+@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(255,255,255,.75)}70%{box-shadow:0 0 0 12px rgba(255,255,255,0)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}}
+@media (prefers-reduced-motion:reduce){.act.sos .ic{animation:none}}
+.act .lb{display:flex;flex-direction:column;min-width:0}.act .lb b{font-size:19px;font-weight:800}.act .lb small{font-size:11px;opacity:.8}
 .mood{font-size:13px;padding:6px 12px;border-radius:14px;background:var(--ch);color:#C9C2FF}
 #msg{margin:0;min-height:20px;font-size:14px;color:#FFD27A}
 :focus-visible{outline:3px solid var(--cy);outline-offset:2px}
@@ -196,33 +223,126 @@ function viewOnboarding() {
   };
 }
 
+// ---- Tareas privadas (Mi día) ----
+const EMO = ['✨','🛒','📞','💼','💊','🏃','📚','🧹','🎁','✈️','🍽️','💳'];
+const EMO_RULES = [[/compr|super|mercado|pan\b|tienda/i,'🛒'],[/llam|telef|whats/i,'📞'],[/pag|factura|banco|dinero|cobr/i,'💳'],[/medic|pastilla|doctor|cita|salud|dentist/i,'💊'],[/gym|ejerc|correr|entren|camin/i,'🏃'],[/estud|leer|libro|tarea|clase|curso/i,'📚'],[/reuni|trabaj|enviar|correo|mail|informe|jefe/i,'💼'],[/limpi|lav|orden|barr/i,'🧹'],[/cumple|regalo|fiesta|sorpresa/i,'🎁'],[/viaj|vuelo|maleta|pasaje/i,'✈️'],[/comer|cocin|almuer|cena|desayun/i,'🍽️']];
+const guessEmoji = t => { for (const [re, e] of EMO_RULES) if (re.test(t)) return e; return '✨'; };
+const todayStr = () => new Date().toLocaleDateString('en-CA');
+let tasks = [], tasksAll = false, tasksFuture = false, tasksAdding = false, tEmoji = null, tDraft = '';
+async function loadTasks() {
+  const since = new Date(Date.now() - 864e5).toISOString();
+  const { data } = await sb.from('tasks').select('*').or(`done.eq.false,done_at.gte.${since}`).order('due_on').order('due_time', { nullsFirst: false }).limit(100);
+  tasks = data || [];
+  if (!window._tclean) { window._tclean = 1; sb.from('tasks').delete().lt('done_at', new Date(Date.now() - 7 * 864e5).toISOString()).then(() => {}); }
+}
+function taskMeta(t, today) {
+  const hh = t.due_time ? t.due_time.slice(0, 5) : '';
+  if (t.due_on < today) return `<span class="tm late">${t.due_on === new Date(Date.now() - 864e5).toLocaleDateString('en-CA') ? 'ayer' : 'atrasada'}</span>`;
+  if (t.due_on > today) { const [y, m, d] = t.due_on.split('-'); return `<span class="tm">${d}/${m}${hh ? ' · ⏰ ' + hh : ''}</span>`; }
+  return hh ? `<span class="tm">⏰ ${hh}</span>` : '';
+}
+function drawTasks() {
+  const box = $('#tasks'); if (!box) return;
+  const today = todayStr();
+  const open = tasks.filter(t => !t.done);
+  const due = open.filter(t => t.due_on <= today), fut = open.filter(t => t.due_on > today);
+  const doneToday = tasks.filter(t => t.done && t.done_at && new Date(t.done_at).toLocaleDateString('en-CA') === today).length;
+  const item = t => `<div class="task"><button class="chk" data-t="${t.id}" aria-label="Marcar como hecha"></button><span class="te">${esc(t.emoji)}</span><span class="tt">${esc(t.text)}</span>${taskMeta(t, today)}<button class="tx" data-x="${t.id}" aria-label="Borrar tarea">×</button></div>`;
+  const shown = tasksAll ? due : due.slice(0, 3);
+  box.innerHTML = `<div class="dayh"><b>📅 Mi día</b><span class="muted">${due.length} pendiente${due.length === 1 ? '' : 's'}${doneToday ? ' · ' + doneToday + ' hecha' + (doneToday === 1 ? '' : 's') : ''}</span></div>
+  ${shown.length ? shown.map(item).join('') : '<p class="muted" style="margin:6px 0">Nada pendiente hoy ✨</p>'}
+  ${due.length > 3 ? `<button class="link" id="tmore" style="padding:2px 0">${tasksAll ? 'Ver menos' : '+' + (due.length - 3) + ' más'}</button>` : ''}
+  ${fut.length ? `<button class="link" id="tfut" style="padding:2px 0">📆 ${fut.length} programada${fut.length === 1 ? '' : 's'}</button>${tasksFuture ? fut.map(item).join('') : ''}` : ''}
+  <div class="tadd"><input id="tnew" maxlength="80" placeholder="Nueva tarea…" autocomplete="off" value="${esc(tDraft)}"><button id="tplus" aria-label="Añadir">＋</button></div>
+  <div id="topts" ${tasksAdding ? '' : 'hidden'}>
+    <div class="emos">${EMO.map(e => `<button class="emo${tEmoji === e ? ' on' : ''}" data-e="${e}">${e}</button>`).join('')}</div>
+    <div class="tdt"><label>Día<input type="date" id="tdate" value="${today}" min="${today}"></label><label>Hora (opcional)<input type="time" id="ttime"></label></div>
+    <button class="btn2" id="tsave" style="height:42px">Guardar tarea</button>
+  </div>`;
+  box.querySelectorAll('[data-t]').forEach(b => b.onclick = async () => {
+    const t = tasks.find(x => x.id === b.dataset.t); if (!t) return;
+    t.done = true; t.done_at = new Date().toISOString(); drawTasks();
+    const { error } = await sb.from('tasks').update({ done: true, done_at: t.done_at }).eq('id', t.id);
+    if (error) { t.done = false; t.done_at = null; drawTasks(); msg('No se pudo marcar: ' + error.message); }
+  });
+  box.querySelectorAll('[data-x]').forEach(b => b.onclick = async () => {
+    const id = b.dataset.x; const old = tasks; tasks = tasks.filter(x => x.id !== id); drawTasks();
+    const { error } = await sb.from('tasks').delete().eq('id', id);
+    if (error) { tasks = old; drawTasks(); msg('No se pudo borrar: ' + error.message); }
+  });
+  const nw = $('#tnew');
+  nw.oninput = () => { tDraft = nw.value; };
+  nw.onfocus = () => { tasksAdding = true; $('#topts').hidden = false; };
+  nw.onkeydown = e => { if (e.key === 'Enter') addTask(); };
+  $('#tplus').onclick = () => { if (nw.value.trim()) addTask(); else { tasksAdding = true; $('#topts').hidden = false; nw.focus(); } };
+  $('#tsave').onclick = addTask;
+  box.querySelectorAll('[data-e]').forEach(b => b.onclick = () => {
+    tEmoji = tEmoji === b.dataset.e ? null : b.dataset.e;
+    box.querySelectorAll('[data-e]').forEach(x => x.classList.toggle('on', x.dataset.e === tEmoji));
+  });
+  if ($('#tmore')) $('#tmore').onclick = () => { tasksAll = !tasksAll; drawTasks(); };
+  if ($('#tfut')) $('#tfut').onclick = () => { tasksFuture = !tasksFuture; drawTasks(); };
+}
+async function addTask() {
+  const text = $('#tnew').value.trim(); if (!text) return;
+  const emoji = tEmoji || guessEmoji(text);
+  const due_on = ($('#tdate') && $('#tdate').value) || todayStr();
+  const due_time = ($('#ttime') && $('#ttime').value) || null;
+  const { data, error } = await sb.from('tasks').insert({ text, emoji, due_on, due_time }).select().single();
+  if (error) return msg(/30/.test(error.message) ? 'Tienes 30 tareas pendientes. Completa alguna primero.' : 'No se pudo guardar: ' + error.message);
+  tasks.push(data); tEmoji = null; tDraft = ''; tasksAdding = false; msg(''); drawTasks();
+}
+const ICON_SOS = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B0F1A" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="2.2" fill="#0B0F1A"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4"/><path d="M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/></svg>';
+const ICON_INV = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B0F1A" stroke-width="2.4" stroke-linecap="round"><circle cx="10" cy="8" r="3.6"/><path d="M3.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M19 6v6M16 9h6"/></svg>';
+const msgPreview = (m, mine) => !m ? '' : (m.deleted_at ? 'Mensaje eliminado' : (mine ? 'Tú: ' : '') + (m.kind === 'audio' ? '🎤 Audio' : String(m.body || '').slice(0, 40)));
+const msgTime = m => { if (!m) return ''; const d = new Date(m.created_at); return d.toLocaleDateString('en-CA') === todayStr() ? d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false }) : d.toLocaleDateString('es', { day: '2-digit', month: '2-digit' }); };
+
 let fromCfg = false;
 const goBack = () => fromCfg ? viewSettings() : viewHome();
 async function viewHome() {
   fromCfg = false;
-  const { data, error } = await sb.from('contacts')
-    .select('ring, profiles!contacts_contact_fkey(id, display_name, color, mood)').eq('owner', me.id);
-  const { data: un } = await sb.from('messages').select('sender_id').neq('sender_id', me.id).neq('status', 'read').is('deleted_at', null).limit(1000);
+  if ($('#tnew')) tDraft = $('#tnew').value;
+  const [{ data, error }, { data: un }, { data: convs }, { data: lastMsgs }] = await Promise.all([
+    sb.from('contacts').select('ring, profiles!contacts_contact_fkey(id, display_name, color, mood)').eq('owner', me.id),
+    sb.from('messages').select('sender_id').neq('sender_id', me.id).neq('status', 'read').is('deleted_at', null).limit(1000),
+    sb.from('conversations').select('id, user_a, user_b'),
+    sb.from('messages').select('conversation_id, sender_id, kind, body, created_at, deleted_at').order('created_at', { ascending: false }).limit(100),
+    loadTasks()
+  ]);
   const unread = {}; (un || []).forEach(x => { unread[x.sender_id] = (unread[x.sender_id] || 0) + 1; });
+  const last = {};
+  (lastMsgs || []).forEach(m => { const c = (convs || []).find(x => x.id === m.conversation_id); if (!c) return; const o = c.user_a === me.id ? c.user_b : c.user_a; if (!last[o]) last[o] = m; });
   const badge = c => unread[c.profiles.id] ? `<span class="badge">${unread[c.profiles.id]}</span>` : '';
   const ps = await pushState();
   const list = (data || []).filter(c => c.profiles);
   const nuc = list.filter(c => c.ring === 'nucleo'), cer = list.filter(c => c.ring !== 'nucleo');
-  const card = c => `<button class="card" data-i="${list.indexOf(c)}">${ava(c.profiles, 64)}<b style="font-size:17px">${esc(c.profiles.display_name)}</b><span class="muted" style="color:${esc(c.profiles.color)}">${esc((MOODS[c.profiles.mood]||['—'])[0])}</span>${badge(c)}</button>`;
-  const row = c => `<button class="row" data-i="${list.indexOf(c)}">${ava(c.profiles)}<div><b>${esc(c.profiles.display_name)}</b><div class="muted">${esc((MOODS[c.profiles.mood]||['—'])[0])}</div></div>${badge(c)}</button>`;
-  R(`<div class="top"><span class="logo">HUSHLIGHT</span><span style="display:flex;gap:10px;align-items:center"><span class="mood">${esc((MOODS[profile.mood]||['Calma'])[0])}</span><button class="gear" id="cfg" aria-label="Ajustes">⚙️</button></span></div>
+  const body = c => { const m = last[c.profiles.id]; return `<div class="ct"><b>${esc(c.profiles.display_name)}</b><span class="pv">${m ? esc(msgPreview(m, m.sender_id === me.id)) : `<i style="color:${esc(c.profiles.color)}">${esc((MOODS[c.profiles.mood]||['—'])[0])}</i>`}</span></div><span class="cm"><small>${esc(msgTime(m))}</small>${badge(c)}</span>`; };
+  const card = c => `<button class="card" data-i="${list.indexOf(c)}">${ava(c.profiles, 46)}${body(c)}</button>`;
+  const row = c => `<button class="row" data-i="${list.indexOf(c)}">${ava(c.profiles)}${body(c)}</button>`;
+  R(`<div class="top"><span class="logo">HUSHLIGHT</span><span style="display:flex;gap:10px;align-items:center"><span class="mood" id="mpill">${esc((MOODS[profile.mood]||['Calma'])[0])}</span><button class="gear" id="cfg" aria-label="Ajustes">⚙️</button></span></div>
   <h1>Hola, ${esc(profile.display_name)}.</h1>
   ${error ? `<p id="msg">${esc(error.message)}</p>` : '<p id="msg" role="status">' + esc(pendingError) + '</p>'}
   ${ps === 'off' ? '<button class="link" id="hint" style="text-align:left;padding:0">🔔 Activa las notificaciones en Ajustes</button>' : ''}
+  <div class="q">¿Cómo estás hoy?</div>
+  <div class="moods">${Object.entries(MOODS).map(([k, v]) => `<button class="mchip${profile.mood === k ? ' on' : ''}" data-m="${k}">${esc(v[0])}</button>`).join('')}</div>
+  <div class="day" id="tasks"></div>
   ${list.length === 0 ? '<p class="muted">Aún no tienes a nadie en tu círculo. Toca «Invitar» y comparte el código con la primera persona.</p>' : ''}
   ${nuc.length ? `<div class="sec">Núcleo</div><div class="cards">${nuc.map(card).join('')}</div>` : ''}
   ${cer.length ? `<div class="sec">Cercanos</div>${cer.map(row).join('')}` : ''}
-  <div style="margin-top:auto;display:flex;gap:10px;padding-top:16px">
-    <button class="btn" id="sos" style="background:#FFB43A;flex:1">SOS</button>
-    <button class="btn" id="inv" style="flex:1">Invitar</button>
+  <div style="margin-top:auto;display:flex;gap:12px;padding-top:16px">
+    <button class="act sos" id="sos"><span class="ic">${ICON_SOS}</span><span class="lb"><b>SOS</b><small>Avisar a mi Núcleo</small></span></button>
+    <button class="act inv" id="inv"><span class="ic">${ICON_INV}</span><span class="lb"><b>Invitar</b><small>Suma a alguien</small></span></button>
   </div>`);
   pendingError = ''; inHome = true;
+  drawTasks();
   document.querySelectorAll('[data-i]').forEach(b => b.onclick = () => viewChat(list[+b.dataset.i].profiles));
+  document.querySelectorAll('[data-m]').forEach(b => b.onclick = async () => {
+    const k = b.dataset.m; if (profile.mood === k) return;
+    const prev = profile.mood; profile.mood = k;
+    document.querySelectorAll('[data-m]').forEach(x => x.classList.toggle('on', x.dataset.m === k)); $('#mpill').textContent = MOODS[k][0];
+    const { error: er } = await sb.from('profiles').update({ mood: k }).eq('id', me.id);
+    if (er) { profile.mood = prev; document.querySelectorAll('[data-m]').forEach(x => x.classList.toggle('on', x.dataset.m === prev)); $('#mpill').textContent = (MOODS[prev] || ['Calma'])[0]; msg('No se pudo cambiar el ánimo.'); }
+  });
   $('#sos').onclick = viewSOS;
   $('#inv').onclick = viewInvite;
   $('#cfg').onclick = viewSettings;
@@ -328,7 +448,7 @@ function startMsgs() {
       updateBadge();
     }).subscribe();
 }
-const APP_VERSION = '13';
+const APP_VERSION = '14';
 async function updateApp() {
   const b = $('#upd'); if (b) { b.disabled = true; b.textContent = 'Actualizando…'; }
   try {
