@@ -210,6 +210,7 @@ async function viewHome() {
     <button class="btn" id="sos" style="background:#FFB43A">SOS · avisar a mi Núcleo</button>
     <button class="btn" id="inv">Invitar a alguien</button>
     <button class="btn2" id="red">Tengo un código</button>
+    <button class="btn2" id="pin">${pinGet() ? 'Cambiar o quitar mi PIN' : 'Activar PIN de bloqueo'}</button>
     ${ps === 'off' ? '<button class="btn2" id="push">Activar notificaciones</button>' : ''}
     ${ps === 'on' ? '<p class="muted" style="text-align:center">🔔 Notificaciones activas</p><button class="btn2" id="ptest">Probar notificación</button>' : ''}
     ${ps === 'denied' ? '<p class="muted" style="text-align:center">Las notificaciones están bloqueadas. Actívalas en Ajustes del iPhone → Notificaciones → Hushlight.</p>' : ''}
@@ -229,7 +230,8 @@ async function viewHome() {
   if ($('#inst')) $('#inst').onclick = async () => { installEv.prompt(); await installEv.userChoice; installEv = null; viewHome(); };
   $('#inv').onclick = viewInvite;
   $('#red').onclick = viewRedeem;
-  $('#out').onclick = async () => { stopSignals(); try { const rg = await navigator.serviceWorker.getRegistration(); const sb2 = rg && await rg.pushManager.getSubscription(); if (sb2) await sb.rpc('drop_push', { p_endpoint: sb2.endpoint }); } catch (_) {} await sb.auth.signOut(); tab = 'entrar'; boot(); };
+  $('#pin').onclick = viewPin;
+  $('#out').onclick = async () => { stopSignals(); try { const rg = await navigator.serviceWorker.getRegistration(); const sb2 = rg && await rg.pushManager.getSubscription(); if (sb2) await sb.rpc('drop_push', { p_endpoint: sb2.endpoint }); } catch (_) {} await sb.auth.signOut(); try { localStorage.removeItem(PIN_KEY); } catch (_) {} tab = 'entrar'; boot(); };
 }
 
 function viewInvite() {
@@ -285,7 +287,7 @@ function startMsgs() {
       updateBadge();
     }).subscribe();
 }
-const APP_VERSION = '10';
+const APP_VERSION = '11';
 async function updateApp() {
   const b = $('#upd'); if (b) { b.disabled = true; b.textContent = 'Actualizando…'; }
   try {
@@ -612,6 +614,88 @@ async function viewChat(other) {
   $('#txt').onkeydown = e => { if (e.key === 'Enter') send(); };
   $('#back').onclick = () => { if (rec && rec.state === 'recording') { rec.cancelled = true; rec.stop(); } left = true; clearInterval(poll); clearInterval(safety); document.removeEventListener('visibilitychange', onVis); window.removeEventListener('online', wake); window.removeEventListener('focus', wake); sb.removeChannel(ch); viewHome(); };
 }
+
+// ---- Bloqueo con PIN (se guarda solo en este dispositivo) ----
+const PIN_KEY = 'hl_pin', LOCK_AFTER = 30000;
+const pinGet = () => { try { return JSON.parse(localStorage.getItem(PIN_KEY)); } catch (_) { return null; } };
+const pinPut = o => { try { localStorage.setItem(PIN_KEY, JSON.stringify(o)); } catch (_) {} };
+const hex = buf => [...new Uint8Array(buf)].map(x => x.toString(16).padStart(2, '0')).join('');
+async function pinHash(pin, salt) {
+  const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']);
+  return hex(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: new TextEncoder().encode(salt), iterations: 150000, hash: 'SHA-256' }, k, 256));
+}
+async function pinSave(pin) { const salt = hex(crypto.getRandomValues(new Uint8Array(16))); pinPut({ salt, hash: await pinHash(pin, salt), fails: 0, until: 0 }); }
+// Devuelve '' si el PIN es correcto, o el mensaje de error.
+async function pinCheck(pin) {
+  const p = pinGet(); if (!p) return '';
+  const wait = (p.until || 0) - Date.now();
+  if (wait > 0) return 'Demasiados intentos. Espera ' + Math.ceil(wait / 1000) + ' segundos.';
+  if (await pinHash(pin, p.salt) === p.hash) { p.fails = 0; p.until = 0; pinPut(p); return ''; }
+  p.fails = (p.fails || 0) + 1;
+  if (p.fails >= 5) p.until = Date.now() + 30000 * (p.fails - 4);
+  pinPut(p);
+  return p.fails >= 5 ? 'PIN incorrecto. Espera un momento antes de intentar de nuevo.' : 'PIN incorrecto.';
+}
+let locked = false, hiddenAt = 0;
+function showLock() {
+  if (!pinGet() || locked) return; locked = true;
+  const o = document.createElement('div'); o.id = 'lock';
+  o.style.cssText = 'position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;justify-content:center;gap:14px;padding:24px;box-sizing:border-box;max-width:430px;margin:0 auto';
+  o.innerHTML = `<div class="logo">HUSHLIGHT</div><h1>Escribe tu PIN.</h1>
+    <input id="lpin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" aria-label="PIN" style="text-align:center;letter-spacing:8px;font-size:24px">
+    <p id="lmsg" role="status" class="muted"></p>
+    <button class="btn" id="lgo">Desbloquear</button>
+    <button class="link" id="lforgot">Olvidé mi PIN</button>`;
+  document.body.appendChild(o);
+  const inp = o.querySelector('#lpin'), m = o.querySelector('#lmsg');
+  setTimeout(() => inp.focus(), 50);
+  const go = async () => {
+    const e = await pinCheck(inp.value);
+    if (e) { m.textContent = e; inp.value = ''; return; }
+    o.remove(); locked = false; hiddenAt = 0;
+  };
+  o.querySelector('#lgo').onclick = go;
+  inp.onkeydown = ev => { if (ev.key === 'Enter') go(); };
+  o.querySelector('#lforgot').onclick = async () => {
+    if (!confirm('Se cerrará tu sesión en este dispositivo y se quitará el PIN. Podrás volver a entrar con tu correo y contraseña. ¿Continuar?')) return;
+    stopSignals(); try { await sb.auth.signOut(); } catch (_) {}
+    try { localStorage.removeItem(PIN_KEY); } catch (_) {}
+    o.remove(); locked = false; tab = 'entrar'; boot();
+  };
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  if (hiddenAt && Date.now() - hiddenAt > LOCK_AFTER) showLock();
+});
+function viewPin() {
+  const has = !!pinGet();
+  R(`<div class="logo">PIN</div>
+  <h1>${has ? 'Tu PIN de bloqueo.' : 'Crea un PIN.'}</h1>
+  <p class="muted">Hushlight pedirá el PIN al abrirla y al volver a ella después de unos segundos. Se guarda solo en este dispositivo.</p>
+  ${has ? '<label for="p0">PIN actual</label><input id="p0" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">' : ''}
+  <label for="p1">${has ? 'PIN nuevo' : 'PIN'} (4 a 6 números)</label>
+  <input id="p1" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
+  <label for="p2">Repite el PIN</label>
+  <input id="p2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off">
+  <p id="msg" role="status"></p>
+  <button class="btn" id="psave">Guardar PIN</button>
+  ${has ? '<button class="btn2" id="pdel">Quitar PIN</button>' : ''}
+  <button class="link" id="back">Volver</button>`);
+  $('#back').onclick = viewHome;
+  $('#psave').onclick = async () => {
+    if (has) { const e = await pinCheck($('#p0').value); if (e) return msg(e); }
+    const a = $('#p1').value, b = $('#p2').value;
+    if (!/^\d{4,6}$/.test(a)) return msg('El PIN debe tener de 4 a 6 números.');
+    if (a !== b) return msg('Los dos PIN no coinciden.');
+    await pinSave(a); pendingError = 'PIN guardado.'; viewHome();
+  };
+  if (has) $('#pdel').onclick = async () => {
+    const e = await pinCheck($('#p0').value); if (e) return msg(e);
+    try { localStorage.removeItem(PIN_KEY); } catch (_) {}
+    pendingError = 'PIN quitado.'; viewHome();
+  };
+}
+showLock();
 
 boot();
 </script>
