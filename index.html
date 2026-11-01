@@ -213,6 +213,7 @@ async function viewHome() {
     <button class="btn2" id="pin">${pinGet() ? 'Cambiar o quitar mi PIN' : 'Activar PIN de bloqueo'}</button>
     ${ps === 'off' ? '<button class="btn2" id="push">Activar notificaciones</button>' : ''}
     ${ps === 'on' ? '<p class="muted" style="text-align:center">🔔 Notificaciones activas</p><button class="btn2" id="ptest">Probar notificación</button>' : ''}
+    <button class="btn2" id="ppriv">${profile.push_private ? '🙈 Avisos sin texto: activado' : '👁 Avisos sin texto: desactivado'}</button>
     ${ps === 'denied' ? '<p class="muted" style="text-align:center">Las notificaciones están bloqueadas. Actívalas en Ajustes del iPhone → Notificaciones → Hushlight.</p>' : ''}
     ${ps === 'unsupported' ? '<p class="muted" style="text-align:center">Para recibir avisos en iPhone: toca Compartir → «Agregar a pantalla de inicio», abre Hushlight desde su icono y toca «Activar notificaciones». Requiere iOS 16.4 o superior.</p>' : ''}
     ${installEv ? '<button class="btn2" id="inst">Instalar Hushlight en este dispositivo</button>' : ''}
@@ -226,6 +227,14 @@ async function viewHome() {
   if ($('#push')) $('#push').onclick = enablePush;
   if ($('#ptest')) $('#ptest').onclick = async () => { try { const reg = await navigator.serviceWorker.ready; await reg.showNotification('Hushlight', { body: 'Así te llegarán los avisos 🔔', icon: 'icon-192.png', tag: 'prueba' }); } catch (e) { pendingError = 'No se pudo probar: ' + e.message; viewHome(); } };
   if (ps === 'on') syncPush();
+  $('#ppriv').onclick = async () => {
+    const v = !profile.push_private;
+    const { error } = await sb.from('profiles').update({ push_private: v }).eq('id', me.id);
+    if (error) { pendingError = 'No se pudo cambiar: ' + error.message; return viewHome(); }
+    profile.push_private = v;
+    pendingError = v ? 'Los avisos ya no muestran el texto del mensaje.' : 'Los avisos vuelven a mostrar el texto.';
+    viewHome();
+  };
   updateBadge();
   if ($('#inst')) $('#inst').onclick = async () => { installEv.prompt(); await installEv.userChoice; installEv = null; viewHome(); };
   $('#inv').onclick = viewInvite;
@@ -287,7 +296,7 @@ function startMsgs() {
       updateBadge();
     }).subscribe();
 }
-const APP_VERSION = '11';
+const APP_VERSION = '12';
 async function updateApp() {
   const b = $('#upd'); if (b) { b.disabled = true; b.textContent = 'Actualizando…'; }
   try {
