@@ -116,8 +116,8 @@ async function boot() {
     const code = sessionStorage.getItem('pending');
     if (code) {
       sessionStorage.removeItem('pending');
-      const { error: e } = await sb.rpc('redeem_invite', { p_code: code });
-      pendingError = e ? e.message : '';
+      const { data: d0, error: e } = await sb.rpc('redeem_invite', { p_code: code });
+      pendingError = e ? e.message : (d0 ? '' : 'Código inválido o vencido.');
     }
     viewHome();
   } catch (e) {
@@ -266,8 +266,9 @@ function viewRedeem() {
   $('#go').onclick = async () => {
     const code = $('#code').value.trim();
     if (!code) return msg('Escribe el código.');
-    const { error } = await sb.rpc('redeem_invite', { p_code: code });
+    const { data, error } = await sb.rpc('redeem_invite', { p_code: code });
     if (error) return fail(error);
+    if (!data) return msg('Código inválido o vencido.');
     viewHome();
   };
 }
@@ -284,7 +285,7 @@ function startMsgs() {
       updateBadge();
     }).subscribe();
 }
-const APP_VERSION = '9';
+const APP_VERSION = '10';
 async function updateApp() {
   const b = $('#upd'); if (b) { b.disabled = true; b.textContent = 'Actualizando…'; }
   try {
