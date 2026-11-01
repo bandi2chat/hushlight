@@ -297,10 +297,49 @@ const ICON_INV = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" st
 const msgPreview = (m, mine) => !m ? '' : (m.deleted_at ? 'Mensaje eliminado' : (mine ? 'Tú: ' : '') + (m.kind === 'audio' ? '🎤 Audio' : String(m.body || '').slice(0, 40)));
 const msgTime = m => { if (!m) return ''; const d = new Date(m.created_at); return d.toLocaleDateString('en-CA') === todayStr() ? d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false }) : d.toLocaleDateString('es', { day: '2-digit', month: '2-digit' }); };
 
+// ---- Papel tapiz ----
+const WALLS = { hush: 'Hushlight', nombre: 'Mi nombre', estrellas: 'Estrellas', constelacion: 'Constelación', liso: 'Liso' };
+function wallSvg(k) {
+  const v = 'rgba(139,123,255,0.16)', c = 'rgba(61,242,224,0.13)', y = 'rgba(255,210,122,0.12)';
+  const star = (x, yy, r, f) => `<path d="M${x} ${yy - r}L${x + r * .28} ${yy - r * .28}L${x + r} ${yy}L${x + r * .28} ${yy + r * .28}L${x} ${yy + r}L${x - r * .28} ${yy + r * .28}L${x - r} ${yy}L${x - r * .28} ${yy - r * .28}Z" fill="${f}"/>`;
+  const moon = (x, yy, r, f) => `<path d="M${x} ${yy - r}A${r} ${r} 0 1 0 ${x} ${yy + r}A${r * .7} ${r * .7} 0 1 1 ${x} ${yy - r}Z" fill="${f}"/>`;
+  const bub = (x, yy, f) => `<g fill="none" stroke="${f}" stroke-width="1.6" stroke-linejoin="round"><rect x="${x}" y="${yy}" width="16" height="11" rx="4"/><path d="M${x + 4} ${yy + 11}L${x + 3} ${yy + 15}L${x + 8} ${yy + 11}"/></g>`;
+  let pat = '', w = 150, h = 90, rot = -24;
+  if (k === 'hush' || k === 'nombre') {
+    const raw = k === 'nombre' ? ((typeof profile !== 'undefined' && profile && profile.display_name) || 'Hushlight') : 'Hushlight';
+    const t = esc(raw), est = raw.length * 9.5;
+    w = Math.max(150, Math.round(est + 80)); h = 96;
+    const tx = (x, yy, f) => `<text x="${x}" y="${yy}" fill="${f}">${t}</text>`;
+    const half = Math.round(w / 2);
+    pat = `<g font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="12" letter-spacing="2">${tx(8, 28, v)}${tx(8 + half, 76, c)}${tx(8 + half - w, 76, c)}</g>` +
+      star(Math.round(8 + est + 16), 24, 5, y) + bub(half - 30, 50, c) + bub(w - 34, 4, v) +
+      star(Math.round(8 + half + est + 16 - w < 0 ? 8 + half + est + 16 : 8 + half + est + 16 - w), 72, 4, v);
+  } else if (k === 'estrellas') {
+    w = 140; h = 140; rot = 0;
+    pat = star(22, 24, 7, v) + star(88, 62, 5, c) + star(48, 108, 4, y) + moon(112, 24, 8, c) + bub(14, 62, v) + bub(96, 104, c) +
+      `<circle cx="64" cy="14" r="2" fill="${c}"/><circle cx="8" cy="120" r="1.8" fill="${v}"/><circle cx="130" cy="78" r="1.8" fill="${y}"/>`;
+  } else if (k === 'constelacion') {
+    w = 170; h = 170; rot = 0;
+    const P = [[20, 32], [64, 12], [108, 46], [150, 22], [128, 96], [74, 118], [30, 86], [108, 150], [158, 138]];
+    const L = [[0, 1], [1, 2], [2, 3], [2, 4], [4, 5], [5, 6], [6, 0], [5, 7], [4, 8]];
+    pat = `<g stroke="${v}" stroke-width="1" fill="none">${L.map(([i, j]) => `<line x1="${P[i][0]}" y1="${P[i][1]}" x2="${P[j][0]}" y2="${P[j][1]}"/>`).join('')}</g>` +
+      P.map(([x, yy], i) => i % 3 === 0 ? `<circle cx="${x}" cy="${yy}" r="6" fill="${c}"/><circle cx="${x}" cy="${yy}" r="2.4" fill="rgba(61,242,224,0.35)"/>` : `<circle cx="${x}" cy="${yy}" r="2.2" fill="${v}"/>`).join('');
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><defs><pattern id="p" width="${w}" height="${h}" patternUnits="userSpaceOnUse" patternTransform="rotate(${rot})">${pat}</pattern></defs><rect width="100%" height="100%" fill="url(#p)"/></svg>`;
+}
+const wallGet = () => { try { return localStorage.getItem('hl_wall') || 'hush'; } catch (_) { return 'hush'; } };
+function applyWall() {
+  let k = wallGet(); const b = document.body;
+  if (!WALLS[k]) k = 'hush';
+  if (k === 'liso') { b.style.backgroundImage = 'none'; return; }
+  b.style.backgroundImage = `url("data:image/svg+xml,${encodeURIComponent(wallSvg(k))}")`;
+  b.style.backgroundSize = '100% 100%'; b.style.backgroundRepeat = 'no-repeat';
+}
+
 let fromCfg = false;
 const goBack = () => fromCfg ? viewSettings() : viewHome();
 async function viewHome() {
-  fromCfg = false;
+  fromCfg = false; applyWall();
   if ($('#tnew')) tDraft = $('#tnew').value;
   const [{ data, error }, { data: un }, { data: convs }, { data: lastMsgs }] = await Promise.all([
     sb.from('contacts').select('ring, profiles!contacts_contact_fkey(id, display_name, color, mood)').eq('owner', me.id),
@@ -360,6 +399,10 @@ async function viewSettings() {
     <button class="btn2" id="pin">${pinGet() ? 'Cambiar o quitar mi PIN' : 'Activar PIN de bloqueo'}</button>
     <button class="btn2" id="ppriv">${profile.push_private ? '🙈 Avisos sin texto: activado' : '👁 Avisos sin texto: desactivado'}</button>
   </details>
+  <details class="acc"><summary>🎨 Mi estilo</summary>
+    <p class="muted">Papel tapiz</p>
+    <div class="moods">${Object.entries(WALLS).map(([k, n]) => `<button class="mchip${wallGet() === k ? ' on' : ''}" data-w="${k}">${esc(n)}</button>`).join('')}</div>
+  </details>
   <details class="acc"><summary>🔔 Notificaciones</summary>
     ${ps === 'off' ? '<button class="btn2" id="push">Activar notificaciones</button>' : ''}
     ${ps === 'on' ? '<p class="muted">Notificaciones activas en este dispositivo.</p><button class="btn2" id="ptest">Probar notificación</button>' : ''}
@@ -380,6 +423,10 @@ async function viewSettings() {
   pendingError = '';
   $('#back').onclick = viewHome;
   $('#pin').onclick = viewPin;
+  document.querySelectorAll('[data-w]').forEach(b => b.onclick = () => {
+    try { localStorage.setItem('hl_wall', b.dataset.w); } catch (_) {}
+    applyWall(); document.querySelectorAll('[data-w]').forEach(x => x.classList.toggle('on', x === b));
+  });
   $('#red').onclick = viewRedeem;
   if ($('#push')) $('#push').onclick = enablePush;
   if ($('#ptest')) $('#ptest').onclick = async () => { try { const reg = await navigator.serviceWorker.ready; await reg.showNotification('Hushlight', { body: 'Así te llegarán los avisos 🔔', icon: 'icon-192.png', tag: 'prueba' }); } catch (e) { msg('No se pudo probar: ' + e.message); } };
@@ -448,7 +495,7 @@ function startMsgs() {
       updateBadge();
     }).subscribe();
 }
-const APP_VERSION = '14';
+const APP_VERSION = '15';
 async function updateApp() {
   const b = $('#upd'); if (b) { b.disabled = true; b.textContent = 'Actualizando…'; }
   try {
@@ -856,6 +903,7 @@ function viewPin() {
     pendingError = 'PIN quitado.'; goBack();
   };
 }
+applyWall();
 showLock();
 
 boot();
