@@ -110,7 +110,64 @@ textarea{border-radius:14px;border:1px solid var(--bd);background:var(--bg);colo
 .sopt .si{font-size:22px;width:34px;text-align:center;flex:none}.sopt b{display:block;font-size:16px}.sopt small{color:var(--mu);font-size:12px}.sopt.danger b{color:#FF9AAB}
 .sclose{border:0;background:none;color:var(--mu);padding:8px;font-size:15px}
 .rchips{display:flex;flex-wrap:wrap;gap:8px;padding:2px 4px}.rcust{display:flex;gap:8px;padding:2px 4px}.rcust input{flex:1;min-width:0;height:46px;font-size:16px}
-@media (prefers-reduced-motion:reduce){.beat .heart.go,.sheet{animation:none}}
+
+@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(255,193,90,.8)}70%{box-shadow:0 0 0 9px rgba(255,193,90,0)}100%{box-shadow:0 0 0 0 rgba(255,193,90,0)}}
+/* ---- Invitar: tarjetas de anillo ---- */
+.ghost{height:50px;border-radius:25px;border:1px solid var(--bd);background:rgba(255,255,255,.04);color:var(--mu);font-size:16px;font-weight:600}
+.ghost:active{transform:scale(.97)}
+.rings{display:flex;flex-direction:column;gap:12px}
+.ringc{position:relative;display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:22px;border:1px solid var(--bd);background:rgba(255,255,255,.03);color:var(--tx);text-align:left;transition:transform .15s,border-color .2s,background .2s,box-shadow .2s}
+.ringc:active{transform:scale(.98)}
+.ringc .rico{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;flex:none;background:rgba(11,15,26,.6);border:1px solid rgba(255,255,255,.18);opacity:.75}
+.ringc .rtx{display:flex;flex-direction:column;min-width:0;line-height:1.2}.ringc .rtx b{font-size:18px}.ringc .rtx small{color:var(--mu);font-size:12.5px;margin-top:2px}
+.ringc .rck{margin-left:auto;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:14px;font-weight:800;color:transparent;border:1.5px solid var(--bd);flex:none;transition:all .2s}
+.ringc.on{background:linear-gradient(135deg,rgba(255,255,255,.09),rgba(255,255,255,.03))}
+.ringc.on .rico{opacity:1}.ringc.on .rck{color:#0B0F1A;border-color:transparent}
+.ringc.nuc.on{border-color:rgba(255,128,96,.7);box-shadow:0 0 0 3px rgba(255,100,110,.12),0 12px 30px -12px rgba(255,76,96,.6)}
+.ringc.nuc.on .rico{background:linear-gradient(140deg,#FF9A5A,#FF4D6D 60%,#D6246E);border-color:rgba(255,255,255,.4);box-shadow:0 6px 18px -4px rgba(255,76,96,.7)}
+.ringc.nuc.on .rck{background:linear-gradient(140deg,#FF9A5A,#FF4D6D)}
+.ringc.cer.on{border-color:rgba(61,242,224,.7);box-shadow:0 0 0 3px rgba(61,242,224,.12),0 12px 30px -12px rgba(77,141,255,.6)}
+.ringc.cer.on .rico{background:linear-gradient(140deg,#2FE6D6,#4D8DFF 60%,#7B5CFF);border-color:rgba(255,255,255,.4);box-shadow:0 6px 18px -4px rgba(77,141,255,.7)}
+.ringc.cer.on .rck{background:linear-gradient(140deg,#2FE6D6,#4D8DFF)}
+.ticket{position:relative;border-radius:24px;padding:18px 16px 16px;text-align:center;background:linear-gradient(160deg,rgba(61,242,224,.14),rgba(139,123,255,.16));border:1px solid rgba(61,242,224,.5);box-shadow:0 0 0 3px rgba(61,242,224,.08),0 16px 36px -14px rgba(139,123,255,.7);animation:subir .3s ease-out;overflow:hidden}
+.ticket::before,.ticket::after{content:"";position:absolute;top:50%;width:18px;height:18px;border-radius:50%;background:var(--bg);border:1px solid rgba(61,242,224,.5);transform:translateY(-50%)}
+.ticket::before{left:-10px}.ticket::after{right:-10px}
+.ticket small{color:var(--mu);font-size:12px;letter-spacing:.6px;text-transform:uppercase}
+.tcode{font-family:Orbitron,sans-serif;font-size:27px;font-weight:700;letter-spacing:4px;margin:8px 0 12px;background:linear-gradient(90deg,#fff,var(--cy));-webkit-background-clip:text;background-clip:text;color:transparent;overflow-wrap:anywhere}
+.tmeta{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}.tmeta span{font-size:12px;padding:5px 10px;border-radius:12px;background:rgba(11,15,26,.45);color:#D9E3FF}
+
+/* ---- Esto o aquello ---- */
+.duobox{margin-top:14px;padding-top:14px;border-top:1px solid var(--bd);display:flex;flex-direction:column;gap:10px}
+.duoh{display:flex;align-items:center;justify-content:space-between}
+.duovs{font-style:normal;font-family:Orbitron,sans-serif;font-size:11px;letter-spacing:2px;color:var(--mu)}
+.duow{display:flex;gap:10px}
+.duo{flex:1;min-height:74px;border:0;border-radius:20px;padding:10px 8px;color:#fff;font-size:16px;font-weight:700;line-height:1.2;display:grid;place-items:center;text-align:center;position:relative;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 10px 22px -10px var(--g);transition:transform .15s,opacity .2s,filter .2s}
+.duo.a{--g:rgba(255,76,96,.7);background:linear-gradient(140deg,#FF9A5A,#FF4D6D 60%,#D6246E)}
+.duo.b{--g:rgba(110,100,255,.7);background:linear-gradient(140deg,#2FE6D6,#4D8DFF 55%,#7B5CFF)}
+.duo:not(:disabled):active{transform:scale(.95)}
+.duo.off{opacity:.38;filter:saturate(.5)}.duo.sel{box-shadow:0 0 0 3px #fff3,inset 0 1px 0 rgba(255,255,255,.3),0 10px 22px -10px var(--g)}
+.duo.sel::after{content:"✓";position:absolute;top:6px;right:9px;font-size:13px}
+.duor{display:flex;flex-direction:column;gap:8px}
+.duop{display:flex;align-items:center;gap:10px;font-size:14px}.duop span{flex:1;min-width:0}.duop em{font-style:normal;font-size:12px;color:var(--mu);white-space:nowrap}.duop em.ok{color:var(--cy);font-weight:700}
+
+/* ---- Extras del chat ---- */
+.xbtn{position:relative;margin-left:auto;width:42px;height:42px;border-radius:50%;border:1px solid var(--bd);background:rgba(255,255,255,.05);font-size:18px;flex:none}
+.xdot{position:absolute;top:2px;right:2px;width:11px;height:11px;border-radius:50%;background:#FFC15A;border:2px solid var(--bg);animation:pulso 2s infinite}
+.xhead{display:flex;align-items:center;gap:12px;padding:2px 4px 6px}.xhead b{display:block;font-size:18px}.xhead small{color:var(--mu);font-size:12.5px}
+.xic{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;font-size:20px;flex:none;background:linear-gradient(140deg,#8B7BFF,#4D8DFF)}
+.xic.cap{background:linear-gradient(140deg,#FFC15A,#FF6B7A)}.xic.fade{background:linear-gradient(140deg,#2FE6D6,#4D8DFF)}
+.sopt .xic{width:38px;height:38px;border-radius:12px;font-size:18px}
+.capitem{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;border-radius:12px;background:var(--ch);font-size:14px}
+.fadebar{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 12px;border-radius:12px;background:rgba(61,242,224,.1);border-left:4px solid var(--cy);font-size:13px;color:var(--cy)}.fadebar[hidden]{display:none}
+.capready{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border:0;border-radius:18px;color:#0B0F1A;text-align:left;background:linear-gradient(135deg,#FFC15A,#FF8FA3 60%,#B79BFF);box-shadow:0 10px 24px -10px rgba(255,140,120,.8);animation:subir .3s ease-out}
+.capready b{display:block;font-size:16px}.capready small{font-size:12px;opacity:.85}.capgift{font-size:26px;animation:latir 1.6s ease-in-out infinite}
+@keyframes latir{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.15) rotate(-6deg)}}
+.capbg{align-items:center;padding:20px}
+.capcard{position:relative;width:100%;max-width:360px;border-radius:28px;padding:26px 22px 20px;text-align:center;display:flex;flex-direction:column;gap:10px;background:linear-gradient(160deg,#2a2f63,#1B2240);border:1px solid rgba(255,193,90,.5);box-shadow:0 0 50px -8px rgba(255,160,120,.55);animation:subir .35s ease-out;overflow:hidden}
+.capcard .capgift.big{font-size:48px}.capcard small{color:var(--mu);font-size:12px;letter-spacing:.5px}.capcard b{font-size:20px}
+.capcard p{margin:4px 0 8px;font-size:17px;line-height:1.45;overflow-wrap:anywhere;white-space:pre-wrap}
+.capglow{position:absolute;inset:-40% -20% auto;height:70%;background:radial-gradient(closest-side,rgba(255,193,90,.35),transparent);pointer-events:none}
+@media (prefers-reduced-motion:reduce){.beat .heart.go,.sheet,.capgift,.xdot,.ticket{animation:none}}
 .dayh{display:flex;justify-content:space-between;align-items:center}
 .dayh b{font-size:16px}.dayh .muted{font-size:13px}.day .link{text-align:left;align-self:flex-start}.day{padding:14px 14px}
 .task{display:flex;align-items:center;gap:10px}
@@ -384,14 +441,23 @@ const QUESTIONS = [
 ];
 const qIndexFor = day => { const [y, m, d] = day.split('-').map(Number); return Math.floor(Date.UTC(y, m - 1, d) / 864e5) % QUESTIONS.length; };
 let homeTab = (() => { try { return localStorage.getItem('hl_tab') || 'dia'; } catch (_) { return 'dia'; } })();
-let homeList = [], qa = { rows: [], who: [] }, pulses = [], qEditing = false;
+const DUOS = [['☕ Café','🍵 Té'],['🌅 Amanecer','🌙 Noche'],['🏖️ Playa','⛰️ Montaña'],['🍕 Pizza','🍔 Hamburguesa'],['📖 Libro','🎬 Película'],['🐶 Perros','🐱 Gatos'],['🎵 Música','🎙️ Podcast'],['☀️ Verano','❄️ Invierno'],
+['🏠 Casa','✈️ Viaje'],['🍫 Dulce','🧂 Salado'],['🏃 Madrugar','🛌 Trasnochar'],['📱 Mensaje','📞 Llamada'],['🎂 Sorpresa','🗓️ Plan'],['🌮 Tacos','🍝 Pasta'],['🎮 Videojuegos','🎲 Juegos de mesa'],['🚗 Carretera','🚲 Bicicleta'],
+['🔥 Aventura','🛋️ Tranquilidad'],['🍦 Helado','🍰 Pastel'],['🌧️ Lluvia','🌞 Sol'],['👟 Zapatillas','👞 Zapatos'],['🎤 Cantar','💃 Bailar'],['🧠 Razón','❤️ Corazón'],['🕰️ Pasado','🚀 Futuro'],['🥑 Cocinar','🍽️ Pedir comida'],
+['🌳 Campo','🏙️ Ciudad'],['🎁 Dar','🤗 Recibir'],['📸 Fotos','🎞️ Videos'],['🧩 Rompecabezas','🎯 Puntería'],['🍷 Fiesta','🛁 Casa'],['🐢 Despacio','🐇 Rápido'],['🎨 Dibujar','✍️ Escribir'],['🥶 Frío','🥵 Calor'],
+['🍉 Fruta','🥦 Verdura'],['🎸 En vivo','🎧 Auriculares'],['🛫 Ya mismo','🗺️ Planeado'],['🤝 Grupo','🧘 Solo'],['🍿 Cine','📺 Sofá'],['🧁 Hornear','🥘 Guisar'],['🌌 Estrellas','🌊 Mar'],['💌 Carta','💬 Chat']];
+const duoFor = day => { const [y, m, d] = day.split('-').map(Number); return Math.floor(Date.UTC(y, m - 1, d) / 864e5) % DUOS.length; };
+let homeList = [], qa = { rows: [], who: [] }, pulses = [], qEditing = false, dp = { rows: [], who: [] };
 async function loadCircle() {
   const day = todayStr();
-  const [a, w, p] = await Promise.all([
+  const [a, w, p, dr, dw] = await Promise.all([
     sb.from('daily_answers').select('user_id, answer').eq('day', day),
     sb.rpc('contacts_answered', { p_day: day }),
-    sb.from('pulses').select('user_id, at, alert')
+    sb.from('pulses').select('user_id, at, alert'),
+    sb.from('daily_picks').select('user_id, pick').eq('day', day),
+    sb.rpc('contacts_picked', { p_day: day })
   ]);
+  dp = { rows: dr.data || [], who: Array.isArray(dw.data) ? dw.data : [] };
   qa = { rows: a.data || [], who: Array.isArray(w.data) ? w.data : [] };
   pulses = p.data || [];
 }
@@ -411,6 +477,23 @@ function drawPanel() {
   if (homeTab === 'pregunta') drawQuestion(); else if (homeTab === 'latido') drawPulse(); else drawTasks();
   updateTabs();
 }
+function duoHtml() {
+  const day = todayStr(), [A, B] = DUOS[duoFor(day)], mine = dp.rows.find(r => r.user_id === me.id);
+  const names = dp.who.map(id => { const p = pprof(id); return p ? p.display_name : 'Alguien'; });
+  const side = (t, i, extra) => `<button class="duo ${i ? 'b' : 'a'} ${extra}" data-duo="${i}" ${mine ? 'disabled' : ''}><span>${esc(t)}</span></button>`;
+  let h = `<div class="duoh"><span class="qh">Esto o aquello</span><i class="duovs">VS</i></div>`;
+  if (!mine) {
+    h += `<div class="duow">${side(A, 0, '')}${side(B, 1, '')}</div>`;
+    h += names.length ? `<p class="muted" style="font-size:13px">👀 ${esc(names.join(', '))} ya eligió. Elige para ver qué escogió.</p>` : '';
+  } else {
+    h += `<div class="duow">${side(A, 0, mine.pick === 0 ? 'sel' : 'off')}${side(B, 1, mine.pick === 1 ? 'sel' : 'off')}</div>`;
+    const ot = dp.rows.filter(r => r.user_id !== me.id);
+    if (ot.length) h += `<div class="duor">${ot.map(r => { const p = pprof(r.user_id), same = r.pick === mine.pick; return `<div class="duop">${p ? ava(p, 28) : ''}<span><b>${esc(p ? p.display_name : 'Alguien')}</b> eligió ${esc(r.pick ? B : A)}</span><em class="${same ? 'ok' : ''}">${same ? '✨ ¡Coinciden!' : '🔀 Distinto'}</em></div>`; }).join('')}</div>`;
+    else h += `<p class="muted" style="font-size:13px">Aún nadie más ha elegido. 🌱</p>`;
+    h += `<button class="link" id="duochg" style="padding:0;align-self:flex-start;font-size:13px">Cambiar mi elección</button>`;
+  }
+  return `<div class="duobox">${h}</div>`;
+}
 function drawQuestion() {
   const box = $('#panel'); if (!box) return;
   const day = todayStr(), qi = qIndexFor(day), q = QUESTIONS[qi];
@@ -427,7 +510,16 @@ function drawQuestion() {
     h += `<div class="qm"><small>Tu respuesta</small><p>${esc(mine.answer)}</p><button class="link" id="qedit" style="padding:0;align-self:flex-start">Editar</button></div>`;
     h += others.length ? others.map(r => { const p = pprof(r.user_id); return `<div class="qr">${p ? ava(p, 34) : ''}<div><b>${esc(p ? p.display_name : 'Alguien')}</b><p>${esc(r.answer)}</p></div></div>`; }).join('') : '<p class="muted">Aún nadie más ha respondido. 🌱</p>';
   }
+  h += duoHtml();
   box.innerHTML = h;
+  box.querySelectorAll('[data-duo]').forEach(b => b.onclick = async () => {
+    const pick = +b.dataset.duo; b.disabled = true;
+    const { error } = await sb.from('daily_picks').upsert({ user_id: me.id, day, duo_index: duoFor(day), pick }, { onConflict: 'user_id,day' });
+    if (error) { b.disabled = false; return msg('No se pudo guardar: ' + error.message); }
+    const { data } = await sb.from('daily_picks').select('user_id, pick').eq('day', day);
+    dp.rows = data || []; drawPanel();
+  });
+  const dch = box.querySelector('#duochg'); if (dch) dch.onclick = () => { dp.rows = dp.rows.filter(r => r.user_id !== me.id); drawPanel(); };
   const send = box.querySelector('#qsend');
   if (send) send.onclick = async () => {
     const ans = $('#qans').value.trim(); if (!ans) return msg('Escribe tu respuesta.');
@@ -571,12 +663,12 @@ async function viewHome() {
     sb.from('contacts').select('ring, profiles!contacts_contact_fkey(id, display_name, color, mood, avatar_path)').eq('owner', me.id),
     sb.from('messages').select('sender_id').neq('sender_id', me.id).neq('status', 'read').is('deleted_at', null).limit(1000),
     sb.from('conversations').select('id, user_a, user_b'),
-    sb.from('messages').select('conversation_id, sender_id, kind, body, created_at, deleted_at').order('created_at', { ascending: false }).limit(100),
+    sb.from('messages').select('conversation_id, sender_id, kind, body, created_at, deleted_at, expires_at').order('created_at', { ascending: false }).limit(100),
     loadTasks(), loadCircle()
   ]);
   const unread = {}; (un || []).forEach(x => { unread[x.sender_id] = (unread[x.sender_id] || 0) + 1; });
   const last = {};
-  (lastMsgs || []).forEach(m => { const c = (convs || []).find(x => x.id === m.conversation_id); if (!c) return; const o = c.user_a === me.id ? c.user_b : c.user_a; if (!last[o]) last[o] = m; });
+  (lastMsgs || []).forEach(m => { if (m.expires_at && new Date(m.expires_at) < new Date()) return; const c = (convs || []).find(x => x.id === m.conversation_id); if (!c) return; const o = c.user_a === me.id ? c.user_b : c.user_a; if (!last[o]) last[o] = m; });
   const badge = c => unread[c.profiles.id] ? `<span class="badge">${unread[c.profiles.id]}</span>` : '';
   const ps = await pushState();
   const list = (data || []).filter(c => c.profiles);
@@ -717,25 +809,38 @@ async function viewSettings() {
   $('#out').onclick = async () => { stopSignals(); try { const rg = await navigator.serviceWorker.getRegistration(); const sb2 = rg && await rg.pushManager.getSubscription(); if (sb2) await sb.rpc('drop_push', { p_endpoint: sb2.endpoint }); } catch (_) {} await sb.auth.signOut(); try { localStorage.removeItem(PIN_KEY); } catch (_) {} tab = 'entrar'; boot(); };
 }
 
+const RING_NUC = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="2.6" fill="#fff"/><circle cx="12" cy="12" r="6.2"/><circle cx="12" cy="12" r="10" opacity=".55"/></svg>';
+const RING_CER = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="2.6" fill="#fff"/><circle cx="12" cy="12" r="8" stroke-dasharray="3 3.4"/></svg>';
 function viewInvite() {
   let ring = 'nucleo';
   R(`<div class="logo">INVITAR</div>
   <h1>Invita a tu círculo.</h1>
-  <p class="muted">El Núcleo recibirá tus señales de emergencia. Podrás cambiarlo después.</p>
-  <div class="tabs"><button id="r1" class="on">Núcleo</button><button id="r2">Cercano</button></div>
+  <p class="muted">Elige qué lugar tendrá en tu vida. Podrás cambiarlo después.</p>
+  <div class="rings" role="radiogroup" aria-label="Tipo de contacto">
+    <button class="ringc nuc on" id="r1" role="radio" aria-checked="true"><span class="rico">${RING_NUC}</span><span class="rtx"><b>Núcleo</b><small>Recibe tus alertas de emergencia (SOS)</small></span><i class="rck">✓</i></button>
+    <button class="ringc cer" id="r2" role="radio" aria-checked="false"><span class="rico">${RING_CER}</span><span class="rtx"><b>Cercano</b><small>Chat, estados y preguntas, sin SOS</small></span><i class="rck">✓</i></button>
+  </div>
   <div id="out"></div>
   <p id="msg" role="status"></p>
-  <button class="btn" id="gen">Generar código</button>
-  <button class="link" id="back">Volver</button>`);
-  const set = r => { ring = r; $('#r1').classList.toggle('on', r === 'nucleo'); $('#r2').classList.toggle('on', r === 'cercano'); };
+  <button class="btn neon" id="gen">✨ Generar código</button>
+  <button class="ghost" id="back">Volver</button>`);
+  const set = r => { ring = r; [['r1', 'nucleo'], ['r2', 'cercano']].forEach(([id, k]) => { const e = $('#' + id); e.classList.toggle('on', r === k); e.setAttribute('aria-checked', r === k); }); };
   $('#r1').onclick = () => set('nucleo'); $('#r2').onclick = () => set('cercano');
   $('#back').onclick = goBack;
   $('#gen').onclick = async () => {
+    $('#gen').disabled = true;
     const { data, error } = await sb.rpc('create_invite', { p_ring: ring });
+    $('#gen').disabled = false;
     if (error) return fail(error);
-    $('#out').innerHTML = `<div class="code">${esc(data)}</div><p class="muted" style="text-align:center;margin-top:8px">Caduca en 24 horas · un solo uso</p>`;
-    $('#gen').textContent = 'Copiar código';
-    $('#gen').onclick = async () => { try { await navigator.clipboard.writeText(data); msg('Código copiado.'); } catch { msg('Cópialo a mano: ' + data); } };
+    const rl = ring === 'nucleo' ? 'Núcleo' : 'Cercano';
+    $('#out').innerHTML = `<div class="ticket"><small>Tu código · ${rl}</small><div class="tcode">${esc(data)}</div><div class="tmeta"><span>⏳ Caduca en 24 h</span><span>🔑 Un solo uso</span></div></div>
+      <div class="pvbtns" style="max-width:none"><button class="pvno cp" id="cp" style="flex:1;border-color:var(--bd);background:rgba(255,255,255,.05);color:var(--tx)">📋 Copiar</button><button class="pvok" id="sh">📤 Compartir</button></div>`;
+    $('#gen').textContent = '↻ Generar otro código';
+    $('#cp').onclick = async () => { try { await navigator.clipboard.writeText(data); msg('Código copiado.'); } catch { msg('Cópialo a mano: ' + data); } };
+    $('#sh').onclick = async () => {
+      const text = `Te invito a mi círculo en Hushlight. Tu código: ${data} (válido 24 h).`;
+      try { if (navigator.share) await navigator.share({ text }); else { await navigator.clipboard.writeText(text); msg('Invitación copiada.'); } } catch (_) {}
+    };
   };
 }
 
@@ -745,8 +850,8 @@ function viewRedeem() {
   <label for="code">Código</label>
   <input id="code" autocomplete="off" style="text-transform:uppercase;letter-spacing:3px;text-align:center">
   <p id="msg" role="status"></p>
-  <button class="btn" id="go">Unirme</button>
-  <button class="link" id="back">Volver</button>`);
+  <button class="btn neon" id="go">Unirme</button>
+  <button class="ghost" id="back">Volver</button>`);
   $('#back').onclick = goBack;
   $('#go').onclick = async () => {
     const code = $('#code').value.trim();
@@ -783,7 +888,7 @@ document.addEventListener('touchmove', () => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.id !== 'txt') setTimeout(() => e.target.blur(), 50);
 });
-const APP_VERSION = '22';
+const APP_VERSION = '23';
 async function updateApp() {
   const b = $('#upd'); if (b) { b.disabled = true; b.textContent = 'Actualizando…'; }
   try {
@@ -907,18 +1012,21 @@ async function viewChat(other) {
     .or(`and(user_a.eq.${me.id},user_b.eq.${other.id}),and(user_a.eq.${other.id},user_b.eq.${me.id})`).maybeSingle();
   if (ce || !conv) { pendingError = ce ? ce.message : 'No se encontró la conversación.'; return viewHome(); }
   R(`<div class="chat">
-    <div class="chat-top"><button class="link" id="back">‹ Volver</button>${ava(other)}<div><b>${esc(other.display_name)}</b><div class="muted" style="color:${esc(other.color)}">${esc((MOODS[other.mood]||['—'])[0])}</div></div></div>
+    <div class="chat-top"><button class="link" id="back">‹ Volver</button>${ava(other)}<div><b>${esc(other.display_name)}</b><div class="muted" style="color:${esc(other.color)}">${esc((MOODS[other.mood]||['—'])[0])}</div></div><button class="xbtn" id="xtra" aria-label="Extras del chat">✨<i class="xdot" hidden></i></button></div>
+    <div id="capban"></div>
     <p class="muted" id="live" style="margin:0;font-size:12px">Conectando…</p>
     <div class="msgs" id="msgs"></div>
     <p id="msg" role="status"></p>
+    <div class="fadebar" id="fadebar" hidden><span id="fadetxt"></span><button class="link" id="fadex" aria-label="Desactivar">✕</button></div>
     <div class="replybar" id="replybar" hidden><span id="replytxt"></span><button class="link" id="replyx" aria-label="Cancelar respuesta">✕</button></div>
     <button class="link" id="cancel" hidden>Cancelar grabación</button>
     <div class="bar"><input id="txt" placeholder="Mensaje" autocomplete="off" aria-label="Mensaje"><button class="send" id="photo" aria-label="Enviar foto" style="background:var(--ch);color:var(--tx);padding:0;width:48px;font-size:20px">📷</button><input type="file" id="imgfile" accept="image/*" hidden><button class="send" id="mic" style="background:var(--vi)">Grabar</button><button class="send" id="send">Enviar</button></div>
   </div>`);
   $('#app').className = 'full';
   const seen = new Map();
-  let replying = null;
+  let replying = null, fadeMs = 0;
   let poll = null, left = false;
+  const leftTxt = ts => { const mm = Math.max(1, Math.round((new Date(ts) - Date.now()) / 6e4)); return mm < 60 ? mm + ' min' : Math.round(mm / 60) + ' h'; };
   const tick = m => m.status === 'read' ? '✓✓ Leído' : m.status === 'delivered' ? '✓✓' : '✓';
   const els = new Map(), urls = new Map(), quotes = new Map();
   let lastDay = '', lastAt = '';
@@ -1031,6 +1139,7 @@ async function viewChat(other) {
     const rows = [...seen.values()].sort((a, b) => a.created_at < b.created_at ? -1 : 1);
     let stale = false;
     rows.forEach(m => {
+      if (m.expires_at && new Date(m.expires_at) <= new Date()) { const ee = els.get(m.id); if (ee) { ee.remove(); els.delete(m.id); } seen.delete(m.id); return; }
       const mine = m.sender_id === me.id, d = new Date(m.created_at);
       const t = d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
       let el = els.get(m.id);
@@ -1048,7 +1157,7 @@ async function viewChat(other) {
         fill(el, m, mine);
         (quotes.get(m.id) || []).forEach(q => { q.textContent = 'Mensaje eliminado'; });
       }
-      el.querySelector('.meta').textContent = t + (mine ? ' · ' + tick(m) : '');
+      el.querySelector('.meta').textContent = t + (mine ? ' · ' + tick(m) : '') + (m.expires_at ? ' · 🫥 ' + leftTxt(m.expires_at) : '');
     });
     if (stale && !again) { box.innerHTML = ''; els.clear(); quotes.clear(); lastDay = ''; lastAt = ''; return draw(true); }
     if (atEnd) box.scrollTop = box.scrollHeight;
@@ -1103,6 +1212,7 @@ async function viewChat(other) {
     tmp.className = 'b me'; tmp.style.background = profile.color; tmp.style.opacity = '.6'; tmp.textContent = body;
     box.appendChild(tmp); box.scrollTop = box.scrollHeight;
     const row = { conversation_id: conv.id, sender_id: me.id, kind: 'text', body, reply_to: replying ? replying.id : null };
+    if (fadeMs) row.expires_at = new Date(Date.now() + fadeMs).toISOString();
     let data = null, error = null;
     try {
       ({ data, error } = await sb.from('messages').insert(row).select().single());
@@ -1119,6 +1229,82 @@ async function viewChat(other) {
     $('#replybar').hidden = false; $('#txt').focus();
   };
   $('#replyx').onclick = clearReply;
+  // ---- ✨ Extras: mensajes que se desvanecen y cápsula del tiempo ----
+  let caps = { mine: [], forMe: [] }, capT = null;
+  const fmtD = ts => new Date(ts).toLocaleDateString('es', { day: 'numeric', month: 'long', year: new Date(ts).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined });
+  const setFade = ms => {
+    fadeMs = ms; $('#fadebar').hidden = !ms;
+    $('#fadetxt').textContent = ms ? '🫥 Tus mensajes se desvanecen en ' + (ms >= 864e5 ? '24 horas' : '1 hora') : '';
+    $('#txt').placeholder = ms ? 'Se desvanece…' : 'Mensaje';
+  };
+  $('#fadex').onclick = () => setFade(0);
+  const loadCaps = async () => {
+    const [a, b] = await Promise.all([
+      sb.from('capsules').select('id, unlock_at, opened_at').eq('sender_id', me.id).eq('recipient_id', other.id).gt('unlock_at', new Date().toISOString()).order('unlock_at'),
+      sb.rpc('capsules_for_me')
+    ]);
+    caps.mine = a.data || []; caps.forMe = (Array.isArray(b.data) ? b.data : []).filter(c => c.sender_id === other.id);
+    drawCapBanner();
+  };
+  const readyCaps = () => caps.forMe.filter(c => !c.opened_at && new Date(c.unlock_at) <= new Date());
+  const drawCapBanner = () => {
+    const bx = $('#capban'); if (!bx) return;
+    const r = readyCaps(); const dot = document.querySelector('#xtra .xdot'); if (dot) dot.hidden = !r.length;
+    bx.innerHTML = r.length ? `<button class="capready" id="capopen"><span class="capgift">🎁</span><span><b>${r.length > 1 ? r.length + ' cápsulas del tiempo' : 'Cápsula del tiempo'}</b><small>${esc(other.display_name)} te dejó ${r.length > 1 ? 'mensajes' : 'un mensaje'} · toca para abrir</small></span></button>` : '';
+    const b = $('#capopen'); if (b) b.onclick = () => openCap(r[0]);
+  };
+  const openCap = async c => {
+    const { data, error } = await sb.rpc('open_capsule', { p_id: c.id });
+    if (error || !data) return msg('No se pudo abrir la cápsula.');
+    const o = document.createElement('div'); o.className = 'sheetbg capbg';
+    o.innerHTML = `<div class="capcard" role="dialog" aria-label="Cápsula del tiempo"><div class="capglow"></div><div class="capgift big">🎁</div><small>Cápsula del tiempo · un mensaje del pasado</small><b>De ${esc(other.display_name)}</b><p>${esc(data)}</p><button class="pvok" id="capok" style="height:50px;font-size:16px">Guardar en mi corazón 💜</button></div>`;
+    document.body.appendChild(o);
+    const close = () => { o.remove(); c.opened_at = new Date().toISOString(); drawCapBanner(); loadCaps(); };
+    o.onclick = e => { if (e.target === o) close(); }; o.querySelector('#capok').onclick = close;
+  };
+  const newCapsule = () => {
+    const o = document.createElement('div'); o.className = 'sheetbg';
+    const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.toLocaleDateString('en-CA'); };
+    o.innerHTML = `<div class="sheet" role="dialog" aria-label="Nueva cápsula"><div class="grab"></div>
+      <div class="xhead"><span class="xic cap">⏳</span><div><b>Cápsula del tiempo</b><small>Para ${esc(other.display_name)} · se abre sola en la fecha que elijas</small></div></div>
+      <textarea id="cbody" maxlength="400" rows="4" placeholder="Escribe algo para el futuro…"></textarea>
+      <div class="rchips" id="cchips"><button class="mchip" data-d="${day(1)}">Mañana</button><button class="mchip" data-d="${day(7)}">1 semana</button><button class="mchip" data-d="${day(30)}">1 mes</button><button class="mchip" data-d="${day(180)}">6 meses</button></div>
+      <div class="rcust"><input type="date" id="cdate" min="${day(1)}" max="${day(365)}"><button class="pvok" id="cgo" style="height:46px;font-size:16px;flex:none;padding:0 18px">Sellar 🔒</button></div>
+      <p class="muted" id="cmsg" style="font-size:13px;min-height:18px"></p><button class="sclose" id="cx">Cancelar</button></div>`;
+    document.body.appendChild(o); const close = () => o.remove();
+    o.onclick = e => { if (e.target === o) close(); }; o.querySelector('#cx').onclick = close;
+    o.querySelectorAll('[data-d]').forEach(b => b.onclick = () => { o.querySelector('#cdate').value = b.dataset.d; o.querySelectorAll('[data-d]').forEach(x => x.classList.toggle('on', x === b)); });
+    o.querySelector('#cgo').onclick = async () => {
+      const body = o.querySelector('#cbody').value.trim(), dv = o.querySelector('#cdate').value, cm = o.querySelector('#cmsg');
+      if (!body) return cm.textContent = 'Escribe el mensaje.';
+      if (!dv) return cm.textContent = 'Elige la fecha en que se abrirá.';
+      const at = new Date(dv + 'T08:00:00'); if (at <= new Date()) return cm.textContent = 'La fecha debe ser futura.';
+      o.querySelector('#cgo').disabled = true;
+      const { error } = await sb.from('capsules').insert({ recipient_id: other.id, body, unlock_at: at.toISOString() });
+      if (error) { o.querySelector('#cgo').disabled = false; return cm.textContent = /10/.test(error.message) ? 'Ya tienes 10 cápsulas pendientes.' : 'No se pudo guardar: ' + error.message; }
+      close(); msg('🔒 Cápsula sellada. Se abrirá el ' + fmtD(at) + ' a las 08:00.'); loadCaps();
+    };
+  };
+  const openExtras = () => {
+    const o = document.createElement('div'); o.className = 'sheetbg';
+    const pend = caps.mine;
+    o.innerHTML = `<div class="sheet" role="dialog" aria-label="Extras del chat"><div class="grab"></div>
+      <div class="xhead"><span class="xic">✨</span><div><b>Extras</b><small>Con ${esc(other.display_name)}</small></div></div>
+      <button class="sopt" data-a="fade"><span class="xic fade">🫥</span><span><b>Mensajes que se desvanecen</b><small>${fadeMs ? 'Activado · toca para cambiar' : 'Se borran solos para los dos'}</small></span></button>
+      <div id="fopts" hidden><div class="rchips"><button class="mchip ${!fadeMs ? 'on' : ''}" data-f="0">Apagado</button><button class="mchip ${fadeMs === 36e5 ? 'on' : ''}" data-f="36e5">1 hora</button><button class="mchip ${fadeMs === 864e5 ? 'on' : ''}" data-f="864e5">24 horas</button></div></div>
+      <button class="sopt" data-a="cap"><span class="xic cap">⏳</span><span><b>Cápsula del tiempo</b><small>Un mensaje que se abre en el futuro</small></span></button>
+      ${pend.length ? `<p class="sheetq" style="margin-top:4px">⏳ Cápsulas que enviaste (${pend.length})</p>${pend.map(c => `<div class="capitem"><span>🔒 Se abre el ${esc(fmtD(c.unlock_at))}</span><button class="link" data-del="${c.id}" aria-label="Eliminar cápsula">🗑️</button></div>`).join('')}` : ''}
+      <button class="sclose" data-a="close">Cerrar</button></div>`;
+    document.body.appendChild(o); const close = () => o.remove();
+    o.onclick = e => { if (e.target === o) close(); };
+    o.querySelector('[data-a="close"]').onclick = close;
+    o.querySelector('[data-a="cap"]').onclick = () => { close(); newCapsule(); };
+    o.querySelector('[data-a="fade"]').onclick = () => { const f = o.querySelector('#fopts'); f.hidden = !f.hidden; };
+    o.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { setFade(+b.dataset.f); close(); });
+    o.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (!confirm('¿Eliminar esta cápsula?')) return; await sb.from('capsules').delete().eq('id', b.dataset.del); close(); loadCaps(); });
+  };
+  $('#xtra').onclick = openExtras;
+  loadCaps(); capT = setInterval(() => { if (!left) loadCaps(); }, 60000);
   let rec = null, chunks = [], timer = null, t0 = 0;
   const micBtn = $('#mic'), cancelBtn = $('#cancel');
   const fmt = n => Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0');
@@ -1189,7 +1375,7 @@ async function viewChat(other) {
   $('#send').onpointerdown = e => e.preventDefault(); // mantiene el teclado abierto
   $('#send').onclick = send;
   $('#txt').onkeydown = e => { if (e.key === 'Enter') send(); };
-  $('#back').onclick = () => { if (rec && rec.state === 'recording') { rec.cancelled = true; rec.stop(); } left = true; clearInterval(poll); clearInterval(safety); document.removeEventListener('visibilitychange', onVis); window.removeEventListener('online', wake); window.removeEventListener('focus', wake); sb.removeChannel(ch); viewHome(); };
+  $('#back').onclick = () => { if (rec && rec.state === 'recording') { rec.cancelled = true; rec.stop(); } left = true; clearInterval(poll); clearInterval(safety); clearInterval(capT); document.removeEventListener('visibilitychange', onVis); window.removeEventListener('online', wake); window.removeEventListener('focus', wake); sb.removeChannel(ch); viewHome(); };
 }
 
 // ---- Bloqueo con PIN (se guarda solo en este dispositivo) ----
