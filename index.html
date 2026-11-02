@@ -67,6 +67,18 @@ button{font-family:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-
 .pvno{flex:0 0 38%;border:1.5px solid #FF7A90;background:rgba(255,122,144,.10);color:#FFB3C0;font-weight:700}
 .pvok{flex:1;border:0;background:linear-gradient(135deg,#3DF2E0,#8B7BFF);color:#0B0F1A;font-weight:800;box-shadow:0 10px 28px rgba(61,242,224,.28)}
 .dock{position:sticky;bottom:0;display:flex;gap:12px;padding:20px 0 max(10px,env(safe-area-inset-bottom));margin-top:auto;background:linear-gradient(to bottom,rgba(27,34,64,0),var(--bg) 38%)}
+.slogan{text-align:center;font-size:28px;line-height:1.15;margin:2px 0 0}
+.gt{background:linear-gradient(90deg,#9FFFF3,#3DF2E0 40%,#8B7BFF);-webkit-background-clip:text;background-clip:text;color:transparent}
+.seals{display:flex;gap:7px;justify-content:center;flex-wrap:wrap}.seals span{font-size:12px;padding:6px 11px;border-radius:13px;background:rgba(43,53,96,.85)}
+.sr{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.fld{display:flex;align-items:center;gap:12px;height:54px;border-radius:27px;border:1px solid var(--bd);background:rgba(15,20,48,.72);padding:0 20px;font-size:16px}
+.fld.cy{border-color:rgba(61,242,224,.55)}.fld.vi{border-color:rgba(139,123,255,.55)}
+.fld input{flex:1;min-width:0;height:100%;border:0;border-radius:0;background:transparent;padding:0;color:var(--tx);font-size:16px;outline:none}
+.fld input:not(:placeholder-shown){text-transform:uppercase;letter-spacing:3px}
+#msg:empty{display:none}
+.fld:focus-within{border-color:rgba(61,242,224,.85);box-shadow:0 0 0 3px rgba(61,242,224,.14)}
+.btn.neon{height:58px;border-radius:29px;font-size:18px;font-weight:800;background:linear-gradient(135deg,#3DF2E0,#8B7BFF);box-shadow:0 0 0 3px rgba(61,242,224,.15),0 10px 28px rgba(61,242,224,.3)}
+.swap{text-align:center;color:var(--mu);font-size:14px;margin:0}.swap button{border:0;background:none;color:var(--cy);font-weight:700;font-size:14px;padding:0}
 .deck{background:var(--sf);border:1px solid var(--bd);border-radius:22px;overflow:hidden}
 .dtabs{display:flex;background:rgba(0,0,0,.2)}
 .dtab{flex:1;padding:13px 4px 11px;border:0;background:transparent;color:var(--mu);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;box-shadow:inset 0 -3px 0 transparent;transition:box-shadow .2s,color .2s}
@@ -175,9 +187,9 @@ let installEv = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; if (inHome) viewHome(); });
 const isIOS = /iphone|ipad/i.test(navigator.userAgent) && !navigator.standalone;
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
-let me = null, profile = null, tab = 'crear', pendingError = '', inHome = false;
+let me = null, profile = null, tab = (urlCode ? 'crear' : 'entrar'), pendingError = '', inHome = false;
 
-const R = html => { inHome = false; $('#app').className = ''; $('#app').innerHTML = html; };
+const R = html => { inHome = false; applyWall(); $('#app').className = ''; $('#app').innerHTML = html; };
 const msg = t => { const m = $('#msg'); if (m) m.textContent = t || ''; };
 const fail = e => msg(ERR[e.message] || e.message);
 const ava = (p, size) => `<div class="ava"${p.avatar_path ? ` data-av="${esc(p.avatar_path)}"` : ''} style="border-color:${esc(p.color)};${size?`width:${size}px;height:${size}px`:''}"><i style="background:${esc(p.color)}">${esc((p.display_name||'?').charAt(0).toUpperCase())}</i></div>`;
@@ -206,21 +218,27 @@ async function boot() {
   }
 }
 
+function authWall() {
+  const w = wallSvg('hush').replace(/0\.16/g, '0.22').replace(/0\.13/g, '0.18');
+  const b = document.body;
+  b.style.backgroundImage = `radial-gradient(80% 36% at 50% 0%, rgba(61,242,224,.28), transparent 72%), radial-gradient(90% 40% at 50% 100%, rgba(139,123,255,.30), transparent 70%), url("data:image/svg+xml,${encodeURIComponent(w)}")`;
+  b.style.backgroundSize = '100% 100%'; b.style.backgroundRepeat = 'no-repeat';
+}
 function viewAuth() {
   const crear = tab === 'crear';
-  R(`<div style="align-self:center;margin-top:-16px">${logoSvg(210)}</div>
-  <div class="logo" style="text-align:center;margin-top:-18px">HUSHLIGHT</div>
-  <h1>Entra con tu código, no con tu número.</h1>
-  <p class="muted">Tu círculo íntimo, disponible en cualquier navegador.</p>
-  <div class="tabs"><button id="t1" class="${crear?'on':''}">Crear cuenta</button><button id="t2" class="${crear?'':'on'}">Ya tengo cuenta</button></div>
-  ${crear ? `<label for="code">Código de invitación (si tienes uno)</label>
-  <input id="code" value="${esc(urlCode)}" autocomplete="off" style="text-transform:uppercase;letter-spacing:3px;text-align:center">` : ''}
-  <label for="em">Correo</label><input id="em" type="email" autocomplete="email">
-  <label for="pw">Contraseña (mínimo 8 caracteres)</label><input id="pw" type="password" autocomplete="${crear?'new-password':'current-password'}">
+  R(`<div style="align-self:center;margin-top:-8px">${logoSvg(124)}</div>
+  <div class="logo" style="text-align:center;margin-top:-12px">HUSHLIGHT</div>
+  <h1 class="slogan">Un código que <span class="gt">te acerca.</span></h1>
+  <div class="seals"><span>🔒 Privado</span><span>🔑 Con código</span><span>✉️ Solo correo</span></div>
+  ${crear ? `<label class="sr" for="code">Código de invitación (si tienes uno)</label>
+  <div class="fld vi">🔑<input id="code" placeholder="Código de invitación (opcional)" value="${esc(urlCode)}" autocomplete="off"></div>` : ''}
+  <label class="sr" for="em">Correo</label><div class="fld cy">✉️<input id="em" type="email" placeholder="tu@correo.com" autocomplete="email"></div>
+  <label class="sr" for="pw">Contraseña (mínimo 8 caracteres)</label><div class="fld">🔒<input id="pw" type="password" placeholder="Contraseña (mínimo 8 caracteres)" autocomplete="${crear?'new-password':'current-password'}"></div>
   <p id="msg" role="status"></p>
-  <button class="btn" id="go">${crear?'Crear cuenta':'Entrar'}</button>`);
-  $('#t1').onclick = () => { tab = 'crear'; viewAuth(); };
-  $('#t2').onclick = () => { tab = 'entrar'; viewAuth(); };
+  <button class="btn neon" id="go">${crear?'Crear cuenta':'Entrar'}</button>
+  <p class="swap">${crear ? '¿Ya tienes cuenta? <button id="sw">Entrar</button>' : '¿Primera vez? <button id="sw">Crear cuenta</button>'}</p>`);
+  authWall();
+  $('#sw').onclick = () => { tab = crear ? 'entrar' : 'crear'; viewAuth(); };
   $('#go').onclick = async () => {
     const email = $('#em').value.trim(), pw = $('#pw').value;
     if (!email || pw.length < 8) return msg('Escribe un correo y una contraseña de al menos 8 caracteres.');
@@ -747,7 +765,7 @@ function startMsgs() {
       updateBadge();
     }).subscribe();
 }
-const APP_VERSION = '19';
+const APP_VERSION = '20';
 async function updateApp() {
   const b = $('#upd'); if (b) { b.disabled = true; b.textContent = 'Actualizando…'; }
   try {
