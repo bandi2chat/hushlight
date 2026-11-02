@@ -662,6 +662,9 @@ function drawPulse() {
 
 const ICON_SOS = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B0F1A" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="2.2" fill="#0B0F1A"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4"/><path d="M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/></svg>';
 const ICON_INV = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B0F1A" stroke-width="2.4" stroke-linecap="round"><circle cx="10" cy="8" r="3.6"/><path d="M3.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M19 6v6M16 9h6"/></svg>';
+const lsj = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (_) { return d; } };
+const lss = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} };
+const hidKeys = cid => ['hl_clr_' + me.id + '_' + cid, 'hl_hid_' + me.id + '_' + cid];
 const msgPreview = (m, mine) => !m ? '' : (m.deleted_at ? 'Mensaje eliminado' : (mine ? 'Tú: ' : '') + (m.kind === 'audio' ? '🎤 Audio' : m.kind === 'image' ? '📷 Foto' : String(m.body || '').slice(0, 40)));
 const msgTime = m => { if (!m) return ''; const d = new Date(m.created_at); return d.toLocaleDateString('en-CA') === todayStr() ? d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false }) : d.toLocaleDateString('es', { day: '2-digit', month: '2-digit' }); };
 
@@ -755,12 +758,15 @@ async function viewHome() {
     sb.from('contacts').select('ring, profiles!contacts_contact_fkey(id, display_name, color, mood, avatar_path, birthday)').eq('owner', me.id),
     sb.from('messages').select('sender_id').neq('sender_id', me.id).neq('status', 'read').is('deleted_at', null).limit(1000),
     sb.from('conversations').select('id, user_a, user_b'),
-    sb.from('messages').select('conversation_id, sender_id, kind, body, created_at, deleted_at, expires_at').order('created_at', { ascending: false }).limit(100),
+    sb.from('messages').select('id, conversation_id, sender_id, kind, body, created_at, deleted_at, expires_at').order('created_at', { ascending: false }).limit(100),
     loadTasks(), loadCircle()
   ]);
   const unread = {}; (un || []).forEach(x => { unread[x.sender_id] = (unread[x.sender_id] || 0) + 1; });
   const last = {};
-  (lastMsgs || []).forEach(m => { if (m.expires_at && new Date(m.expires_at) < new Date()) return; const c = (convs || []).find(x => x.id === m.conversation_id); if (!c) return; const o = c.user_a === me.id ? c.user_b : c.user_a; if (!last[o]) last[o] = m; });
+  const hmemo = {};
+  (lastMsgs || []).forEach(m => { if (m.expires_at && new Date(m.expires_at) < new Date()) return;
+    const hk = hmemo[m.conversation_id] || (hmemo[m.conversation_id] = [lsj(hidKeys(m.conversation_id)[0], ''), new Set(lsj(hidKeys(m.conversation_id)[1], []))]);
+    if ((hk[0] && m.created_at <= hk[0]) || hk[1].has(m.id)) return; const c = (convs || []).find(x => x.id === m.conversation_id); if (!c) return; const o = c.user_a === me.id ? c.user_b : c.user_a; if (!last[o]) last[o] = m; });
   const badge = c => unread[c.profiles.id] ? `<span class="badge">${unread[c.profiles.id]}</span>` : '';
   const ps = await pushState();
   const list = (data || []).filter(c => c.profiles);
@@ -1008,7 +1014,7 @@ document.addEventListener('touchmove', () => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.id !== 'txt') setTimeout(() => e.target.blur(), 50);
 });
-const APP_VERSION = '25';
+const APP_VERSION = '26';
 async function updateApp() {
   const b = $('#upd'); if (b) { b.disabled = true; b.textContent = 'Actualizando…'; }
   try {
@@ -1144,6 +1150,9 @@ async function viewChat(other) {
   </div>`);
   $('#app').className = 'full';
   const seen = new Map();
+  const [KC, KH] = hidKeys(conv.id);
+  let clearedAt = lsj(KC, ''), hid = new Set(lsj(KH, []));
+  const isHid = m => hid.has(m.id) || (clearedAt && m.created_at <= clearedAt);
   let replying = null, fadeMs = 0;
   let poll = null, left = false;
   const leftTxt = ts => { const mm = Math.max(1, Math.round((new Date(ts) - Date.now()) / 6e4)); return mm < 60 ? mm + ' min' : Math.round(mm / 60) + ' h'; };
@@ -1185,6 +1194,47 @@ async function viewChat(other) {
     seen.set(m.id, { ...seen.get(m.id), deleted_at: new Date().toISOString(), body: null, audio_path: null });
     draw();
   };
+  const hideMsg = m => {
+    if (!confirm('¿Eliminar este mensaje solo de este dispositivo?')) return;
+    hid.add(m.id); lss(KH, [...hid].slice(-1000));
+    const e = els.get(m.id); if (e) { e.remove(); els.delete(m.id); }
+    msg('Mensaje quitado de este dispositivo.');
+  };
+  const resetView = () => { const bx = $('#msgs'); if (bx) bx.innerHTML = ''; els.clear(); quotes.clear(); lastDay = ''; lastAt = ''; draw(); };
+  const clearHere = () => {
+    if (!confirm('¿Vaciar este chat en este dispositivo? ' + other.display_name + ' seguirá viendo sus mensajes.')) return;
+    const last = [...seen.values()].reduce((a, m) => m.created_at > a ? m.created_at : a, '');
+    clearedAt = last || new Date().toISOString(); lss(KC, clearedAt);
+    resetView(); msg('🧹 Chat vaciado en este dispositivo.');
+  };
+  const delAllMine = async () => {
+    const mm = [...seen.values()].filter(m => m.sender_id === me.id && !m.deleted_at && !isHid(m));
+    if (!mm.length) return msg('No tienes mensajes tuyos para eliminar.');
+    if (!confirm(`¿Eliminar para todos tus ${mm.length} mensaje${mm.length === 1 ? '' : 's'} de este chat? No se puede deshacer.`)) return;
+    msg('Eliminando…'); let ok = 0; const im = [], au = [];
+    for (const m of mm) {
+      const { data, error } = await sb.rpc('delete_message', { p_id: m.id });
+      if (error) continue; ok++;
+      if (data) (m.kind === 'image' ? im : au).push(data);
+      seen.set(m.id, { ...seen.get(m.id), deleted_at: new Date().toISOString(), body: null, audio_path: null });
+    }
+    if (im.length) sb.storage.from('images').remove(im); if (au.length) sb.storage.from('audios').remove(au);
+    draw(); msg(ok === mm.length ? `🗑️ ${ok} mensaje${ok === 1 ? '' : 's'} eliminado${ok === 1 ? '' : 's'} para todos.` : `Se eliminaron ${ok} de ${mm.length}. Intenta de nuevo con el resto.`);
+  };
+  const openClear = () => {
+    const n = [...seen.values()].filter(m => m.sender_id === me.id && !m.deleted_at && !isHid(m)).length;
+    const o = document.createElement('div'); o.className = 'sheetbg';
+    o.innerHTML = `<div class="sheet" role="dialog" aria-label="Vaciar chat"><div class="grab"></div>
+      <div class="xhead"><span class="xic cap">🧹</span><div><b>Vaciar chat</b><small>Con ${esc(other.display_name)}</small></div></div>
+      <button class="sopt" data-a="here"><span class="si">📱</span><span><b>Solo en este dispositivo</b><small>Oculta todos los mensajes aquí, enviados y recibidos. ${esc(other.display_name)} no lo nota.</small></span></button>
+      <button class="sopt danger" data-a="all"><span class="si">🗑️</span><span><b>Mis mensajes, para todos</b><small>${n ? 'Borra los ' + n + ' que enviaste, también para ' + esc(other.display_name) + '. Los recibidos no se pueden borrar para todos.' : 'No tienes mensajes tuyos pendientes de borrar.'}</small></span></button>
+      <button class="sclose" data-a="close">Cerrar</button></div>`;
+    document.body.appendChild(o); const close = () => o.remove();
+    o.onclick = e => { if (e.target === o) close(); };
+    o.querySelector('[data-a="close"]').onclick = close;
+    o.querySelector('[data-a="here"]').onclick = () => { close(); clearHere(); };
+    o.querySelector('[data-a="all"]').onclick = () => { close(); delAllMine(); };
+  };
   const openMsgMenu = (m, mine) => {
     const prev = m.kind === 'image' ? '📷 Foto' : m.kind === 'audio' ? '🎤 Audio' : (m.body || '');
     const o = document.createElement('div'); o.className = 'sheetbg';
@@ -1193,7 +1243,8 @@ async function viewChat(other) {
       <button class="sopt" data-a="remind"><span class="si">⏰</span><span><b>Recordarme esto</b><small>Un aviso a la hora que elijas</small></span></button>
       <div id="rem" hidden></div>
       <button class="sopt" data-a="task"><span class="si">✅</span><span><b>Convertir en tarea</b><small>Se añade a «Mi día» de hoy</small></span></button>
-      ${mine ? '<button class="sopt danger" data-a="del"><span class="si">🗑️</span><span><b>Eliminar para todos</b><small>No se puede deshacer</small></span></button>' : ''}
+      <button class="sopt danger" data-a="hide"><span class="si">🙈</span><span><b>Eliminar para mí</b><small>Solo se quita de este dispositivo</small></span></button>
+      ${mine && !m.deleted_at ? '<button class="sopt danger" data-a="del"><span class="si">🗑️</span><span><b>Eliminar para todos</b><small>Desaparece también para ' + esc(other.display_name) + '</small></span></button>' : ''}
       <button class="sclose" data-a="close">Cerrar</button></div>`;
     const close = () => o.remove();
     o.onclick = e => { if (e.target === o) close(); };
@@ -1212,6 +1263,7 @@ async function viewChat(other) {
       if (a === 'close') return close();
       if (a === 'reply') { close(); return setReply(m); }
       if (a === 'del') { close(); return delMsg(m); }
+      if (a === 'hide') { close(); return hideMsg(m); }
       if (a === 'task') { close(); return mkTask(todayStr(), null); }
       const rem = o.querySelector('#rem'); rem.hidden = !rem.hidden;
       if (rem.hidden || rem.innerHTML) return;
@@ -1259,6 +1311,7 @@ async function viewChat(other) {
     const rows = [...seen.values()].sort((a, b) => a.created_at < b.created_at ? -1 : 1);
     let stale = false;
     rows.forEach(m => {
+      if (isHid(m)) { const eh = els.get(m.id); if (eh) { eh.remove(); els.delete(m.id); } return; }
       if (m.expires_at && new Date(m.expires_at) <= new Date()) { const ee = els.get(m.id); if (ee) { ee.remove(); els.delete(m.id); } seen.delete(m.id); return; }
       const mine = m.sender_id === me.id, d = new Date(m.created_at);
       const t = d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
@@ -1413,12 +1466,14 @@ async function viewChat(other) {
       <button class="sopt" data-a="fade"><span class="xic fade">🫥</span><span><b>Mensajes que se desvanecen</b><small>${fadeMs ? 'Activado · toca para cambiar' : 'Se borran solos para los dos'}</small></span></button>
       <div id="fopts" hidden><div class="rchips"><button class="mchip ${!fadeMs ? 'on' : ''}" data-f="0">Apagado</button><button class="mchip ${fadeMs === 36e5 ? 'on' : ''}" data-f="36e5">1 hora</button><button class="mchip ${fadeMs === 864e5 ? 'on' : ''}" data-f="864e5">24 horas</button></div></div>
       <button class="sopt" data-a="cap"><span class="xic cap">⏳</span><span><b>Cápsula del tiempo</b><small>Un mensaje que se abre en el futuro</small></span></button>
+      <button class="sopt" data-a="clr"><span class="xic" style="background:linear-gradient(140deg,#FF9A5A,#FF4D6D)">🧹</span><span><b>Vaciar chat</b><small>Solo aquí o también para todos</small></span></button>
       ${pend.length ? `<p class="sheetq" style="margin-top:4px">⏳ Cápsulas que enviaste (${pend.length})</p>${pend.map(c => `<div class="capitem"><span>🔒 Se abre el ${esc(fmtD(c.unlock_at))}</span><button class="link" data-del="${c.id}" aria-label="Eliminar cápsula">🗑️</button></div>`).join('')}` : ''}
       <button class="sclose" data-a="close">Cerrar</button></div>`;
     document.body.appendChild(o); const close = () => o.remove();
     o.onclick = e => { if (e.target === o) close(); };
     o.querySelector('[data-a="close"]').onclick = close;
     o.querySelector('[data-a="cap"]').onclick = () => { close(); newCapsule(); };
+    o.querySelector('[data-a="clr"]').onclick = () => { close(); openClear(); };
     o.querySelector('[data-a="fade"]').onclick = () => { const f = o.querySelector('#fopts'); f.hidden = !f.hidden; };
     o.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { setFade(+b.dataset.f); close(); });
     o.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (!confirm('¿Eliminar esta cápsula?')) return; await sb.from('capsules').delete().eq('id', b.dataset.del); close(); loadCaps(); });
