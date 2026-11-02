@@ -167,6 +167,28 @@ textarea{border-radius:14px;border:1px solid var(--bd);background:var(--bg);colo
 .capcard .capgift.big{font-size:48px}.capcard small{color:var(--mu);font-size:12px;letter-spacing:.5px}.capcard b{font-size:20px}
 .capcard p{margin:4px 0 8px;font-size:17px;line-height:1.45;overflow-wrap:anywhere;white-space:pre-wrap}
 .capglow{position:absolute;inset:-40% -20% auto;height:70%;background:radial-gradient(closest-side,rgba(255,193,90,.35),transparent);pointer-events:none}
+
+/* ---- ¿Cuánto nos conocemos? ---- */
+.kscore{font-size:12px;padding:3px 10px;border-radius:12px;background:rgba(61,242,224,.14);color:var(--cy);font-weight:700}
+.kcard{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:18px;background:var(--ch)}
+.kbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}.kbody small{color:var(--mu);font-size:12px}.kbody>b{font-size:16px;line-height:1.3;overflow-wrap:anywhere}
+.kopts{display:flex;flex-direction:column;gap:6px}
+.kopt{border:1px solid var(--bd);background:rgba(255,255,255,.04);color:var(--tx);border-radius:14px;padding:10px 14px;font-size:15px;text-align:left;transition:transform .12s,background .2s}
+.kopt:not(:disabled):active{transform:scale(.97);background:rgba(61,242,224,.15)}
+.kopt.ok{border-color:#7FD6C2;background:rgba(127,214,194,.18);color:#BFF5E8;font-weight:700}
+.kopt.bad{border-color:#FF7A90;background:rgba(255,122,144,.14);color:#FFB3C0}.kopt.off{opacity:.45}
+.kres{font-size:12.5px!important;color:var(--tx)!important}
+.kmine{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:16px;border:1px dashed var(--bd)}
+.kmine>div{display:flex;flex-direction:column;gap:3px;min-width:0}.kmine b{font-size:14px;overflow-wrap:anywhere}.kmine small{color:var(--mu);font-size:12px;overflow-wrap:anywhere}
+.kmake{height:46px;border-radius:23px;border:1.5px dashed rgba(61,242,224,.6);background:rgba(61,242,224,.07);color:var(--cy);font-size:15px;font-weight:700}
+.krow{display:flex;gap:10px;align-items:center}.krow+.krow{margin-top:8px}.krow input{flex:1;min-width:0;height:46px;font-size:16px}
+.kmark{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--bd);background:transparent;color:#0B0F1A;font-weight:800;flex:none;transition:all .15s}
+.kmark.on{background:linear-gradient(140deg,#2FE6D6,#4D8DFF);border-color:transparent}
+/* ---- Cumpleaños ---- */
+.bday{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;border:1px solid rgba(255,193,90,.45);border-radius:18px;color:var(--tx);text-align:left;background:linear-gradient(135deg,rgba(255,193,90,.14),rgba(255,107,122,.12))}
+.bday.hoy,.bday.me{background:linear-gradient(135deg,#FFC15A,#FF8FA3 60%,#B79BFF);color:#0B0F1A;border:0;box-shadow:0 10px 24px -10px rgba(255,140,120,.8)}
+.bday .bi{font-size:26px}.bday b{display:block;font-size:15.5px}.bday small{font-size:12px;opacity:.8}
+.bdrow{display:flex;gap:8px}.bdrow select{flex:1;min-width:0;height:46px;border-radius:14px;border:1px solid var(--bd);background:var(--sf);color:var(--tx);padding:0 10px;font-size:16px;font-family:inherit}
 @media (prefers-reduced-motion:reduce){.beat .heart.go,.sheet,.capgift,.xdot,.ticket{animation:none}}
 .dayh{display:flex;justify-content:space-between;align-items:center}
 .dayh b{font-size:16px}.dayh .muted{font-size:13px}.day .link{text-align:left;align-self:flex-start}.day{padding:14px 14px}
@@ -441,23 +463,19 @@ const QUESTIONS = [
 ];
 const qIndexFor = day => { const [y, m, d] = day.split('-').map(Number); return Math.floor(Date.UTC(y, m - 1, d) / 864e5) % QUESTIONS.length; };
 let homeTab = (() => { try { return localStorage.getItem('hl_tab') || 'dia'; } catch (_) { return 'dia'; } })();
-const DUOS = [['☕ Café','🍵 Té'],['🌅 Amanecer','🌙 Noche'],['🏖️ Playa','⛰️ Montaña'],['🍕 Pizza','🍔 Hamburguesa'],['📖 Libro','🎬 Película'],['🐶 Perros','🐱 Gatos'],['🎵 Música','🎙️ Podcast'],['☀️ Verano','❄️ Invierno'],
-['🏠 Casa','✈️ Viaje'],['🍫 Dulce','🧂 Salado'],['🏃 Madrugar','🛌 Trasnochar'],['📱 Mensaje','📞 Llamada'],['🎂 Sorpresa','🗓️ Plan'],['🌮 Tacos','🍝 Pasta'],['🎮 Videojuegos','🎲 Juegos de mesa'],['🚗 Carretera','🚲 Bicicleta'],
-['🔥 Aventura','🛋️ Tranquilidad'],['🍦 Helado','🍰 Pastel'],['🌧️ Lluvia','🌞 Sol'],['👟 Zapatillas','👞 Zapatos'],['🎤 Cantar','💃 Bailar'],['🧠 Razón','❤️ Corazón'],['🕰️ Pasado','🚀 Futuro'],['🥑 Cocinar','🍽️ Pedir comida'],
-['🌳 Campo','🏙️ Ciudad'],['🎁 Dar','🤗 Recibir'],['📸 Fotos','🎞️ Videos'],['🧩 Rompecabezas','🎯 Puntería'],['🍷 Fiesta','🛁 Casa'],['🐢 Despacio','🐇 Rápido'],['🎨 Dibujar','✍️ Escribir'],['🥶 Frío','🥵 Calor'],
-['🍉 Fruta','🥦 Verdura'],['🎸 En vivo','🎧 Auriculares'],['🛫 Ya mismo','🗺️ Planeado'],['🤝 Grupo','🧘 Solo'],['🍿 Cine','📺 Sofá'],['🧁 Hornear','🥘 Guisar'],['🌌 Estrellas','🌊 Mar'],['💌 Carta','💬 Chat']];
-const duoFor = day => { const [y, m, d] = day.split('-').map(Number); return Math.floor(Date.UTC(y, m - 1, d) / 864e5) % DUOS.length; };
-let homeList = [], qa = { rows: [], who: [] }, pulses = [], qEditing = false, dp = { rows: [], who: [] };
+let homeList = [], qa = { rows: [], who: [] }, pulses = [], qEditing = false, kq = { quizzes: [], guesses: [], keys: {} }, kqMore = false;
 async function loadCircle() {
   const day = todayStr();
-  const [a, w, p, dr, dw] = await Promise.all([
+  const [a, w, p, qz, gs, ka] = await Promise.all([
     sb.from('daily_answers').select('user_id, answer').eq('day', day),
     sb.rpc('contacts_answered', { p_day: day }),
     sb.from('pulses').select('user_id, at, alert'),
-    sb.from('daily_picks').select('user_id, pick').eq('day', day),
-    sb.rpc('contacts_picked', { p_day: day })
+    sb.from('know_quiz').select('id, author_id, question, options, created_at').gte('created_at', new Date(Date.now() - 14 * 864e5).toISOString()).order('created_at', { ascending: false }).limit(30),
+    sb.from('know_guesses').select('quiz_id, user_id, guess'),
+    sb.rpc('know_answers')
   ]);
-  dp = { rows: dr.data || [], who: Array.isArray(dw.data) ? dw.data : [] };
+  kq.quizzes = qz.data || []; kq.guesses = gs.data || []; kq.keys = {};
+  (Array.isArray(ka.data) ? ka.data : []).forEach(x => { kq.keys[x.quiz_id] = x.answer; });
   qa = { rows: a.data || [], who: Array.isArray(w.data) ? w.data : [] };
   pulses = p.data || [];
 }
@@ -469,7 +487,7 @@ function updateTabs() {
   const silent = pulses.some(p => p.user_id !== me.id && Date.now() - new Date(p.at) > 864e5);
   const set = (k, html) => { const b = document.querySelector(`[data-tab="${k}"] .tb`); if (b) b.innerHTML = html; };
   set('dia', open ? `<b class="cnt">${open}</b>` : '');
-  set('pregunta', mineQ ? '' : '<i class="dot"></i>');
+  set('pregunta', (mineQ && !kqPending()) ? '' : '<i class="dot"></i>');
   set('latido', silent ? '<i class="dot warn"></i>' : '');
 }
 function drawPanel() {
@@ -477,22 +495,61 @@ function drawPanel() {
   if (homeTab === 'pregunta') drawQuestion(); else if (homeTab === 'latido') drawPulse(); else drawTasks();
   updateTabs();
 }
-function duoHtml() {
-  const day = todayStr(), [A, B] = DUOS[duoFor(day)], mine = dp.rows.find(r => r.user_id === me.id);
-  const names = dp.who.map(id => { const p = pprof(id); return p ? p.display_name : 'Alguien'; });
-  const side = (t, i, extra) => `<button class="duo ${i ? 'b' : 'a'} ${extra}" data-duo="${i}" ${mine ? 'disabled' : ''}><span>${esc(t)}</span></button>`;
-  let h = `<div class="duoh"><span class="qh">Esto o aquello</span><i class="duovs">VS</i></div>`;
-  if (!mine) {
-    h += `<div class="duow">${side(A, 0, '')}${side(B, 1, '')}</div>`;
-    h += names.length ? `<p class="muted" style="font-size:13px">👀 ${esc(names.join(', '))} ya eligió. Elige para ver qué escogió.</p>` : '';
-  } else {
-    h += `<div class="duow">${side(A, 0, mine.pick === 0 ? 'sel' : 'off')}${side(B, 1, mine.pick === 1 ? 'sel' : 'off')}</div>`;
-    const ot = dp.rows.filter(r => r.user_id !== me.id);
-    if (ot.length) h += `<div class="duor">${ot.map(r => { const p = pprof(r.user_id), same = r.pick === mine.pick; return `<div class="duop">${p ? ava(p, 28) : ''}<span><b>${esc(p ? p.display_name : 'Alguien')}</b> eligió ${esc(r.pick ? B : A)}</span><em class="${same ? 'ok' : ''}">${same ? '✨ ¡Coinciden!' : '🔀 Distinto'}</em></div>`; }).join('')}</div>`;
-    else h += `<p class="muted" style="font-size:13px">Aún nadie más ha elegido. 🌱</p>`;
-    h += `<button class="link" id="duochg" style="padding:0;align-self:flex-start;font-size:13px">Cambiar mi elección</button>`;
+const kqMine = id => kq.guesses.find(g => g.quiz_id === id && g.user_id === me.id);
+const kqPending = () => kq.quizzes.filter(q => q.author_id !== me.id && !kqMine(q.id)).length;
+function knowHtml() {
+  const others = kq.quizzes.filter(q => q.author_id !== me.id), mineQ = kq.quizzes.filter(q => q.author_id === me.id);
+  const done = others.filter(q => kqMine(q.id) && kq.keys[q.id] !== undefined);
+  const hits = done.filter(q => kqMine(q.id).guess === kq.keys[q.id]).length;
+  const nm = id => { const p = pprof(id); return p ? p.display_name : 'Alguien'; };
+  let h = `<div class="duoh"><span class="qh">¿Cuánto nos conocemos?</span>${done.length ? `<span class="kscore">🎯 ${hits}/${done.length}</span>` : ''}</div>`;
+  const show = kqMore ? others : others.slice(0, 3);
+  h += show.map(q => {
+    const g = kqMine(q.id), key = kq.keys[q.id], p = pprof(q.author_id);
+    const opts = q.options.map((o, i) => {
+      let cls = '';
+      if (g) cls = i === key ? 'ok' : i === g.guess ? 'bad' : 'off';
+      return `<button class="kopt ${cls}" ${g ? 'disabled' : `data-kq="${q.id}" data-i="${i}"`}>${esc(o)}${g && i === key ? ' ✓' : g && i === g.guess ? ' ✗' : ''}</button>`;
+    }).join('');
+    const res = g ? `<small class="kres">${g.guess === key ? '🎉 ¡Lo conoces bien!' : '😅 Casi… ahora lo sabes'}</small>` : '';
+    return `<div class="kcard">${p ? ava(p, 30) : ''}<div class="kbody"><small>${esc(nm(q.author_id))} pregunta</small><b>${esc(q.question)}</b><div class="kopts">${opts}</div>${res}</div></div>`;
+  }).join('') || '<p class="muted" style="font-size:13px">Nadie ha hecho una pregunta todavía. ¡Haz la primera! 🌱</p>';
+  if (others.length > 3) h += `<button class="link" id="kmore" style="padding:0;align-self:flex-start;font-size:13px">${kqMore ? 'Ver menos' : 'Ver ' + (others.length - 3) + ' más'}</button>`;
+  if (mineQ.length) {
+    h += `<div class="qh" style="margin-top:4px">Mis preguntas</div>` + mineQ.map(q => {
+      const key = kq.keys[q.id], gs = kq.guesses.filter(g => g.quiz_id === q.id);
+      const who = gs.length ? gs.map(g => `${esc(nm(g.user_id))} ${g.guess === key ? '✅' : '❌'}`).join(' · ') : 'Esperando respuestas…';
+      return `<div class="kmine"><div><b>${esc(q.question)}</b><small>${q.options.map((o, i) => (i === key ? '★ ' : '') + esc(o)).join(' · ')}</small><small>${who}</small></div><button class="link" data-kdel="${q.id}" aria-label="Eliminar pregunta">🗑️</button></div>`;
+    }).join('');
   }
+  h += `<button class="kmake" id="kmake">＋ Hacer mi pregunta</button>`;
   return `<div class="duobox">${h}</div>`;
+}
+function newQuiz() {
+  const o = document.createElement('div'); o.className = 'sheetbg';
+  const row = i => `<div class="krow"><button class="kmark ${i === 0 ? 'on' : ''}" data-m="${i}" aria-label="Marcar como correcta">${i === 0 ? '✓' : ''}</button><input class="kin" data-o="${i}" maxlength="40" placeholder="Opción ${i + 1}" autocomplete="off"></div>`;
+  o.innerHTML = `<div class="sheet" role="dialog" aria-label="Nueva pregunta"><div class="grab"></div>
+    <div class="xhead"><span class="xic">🎯</span><div><b>¿Cuánto me conoces?</b><small>Marca con ✓ tu respuesta verdadera</small></div></div>
+    <input id="kq" maxlength="100" placeholder="Ej: ¿Cuál es mi comida favorita?" autocomplete="off">
+    <div id="krows">${row(0)}${row(1)}</div>
+    <button class="link" id="k3" style="align-self:flex-start;padding:2px 4px;font-size:13px">＋ Añadir tercera opción</button>
+    <p class="muted" id="kmsg" style="font-size:13px;min-height:18px"></p>
+    <button class="pvok" id="kgo" style="height:48px;font-size:16px;flex:none">Publicar</button><button class="sclose" id="kx">Cancelar</button></div>`;
+  document.body.appendChild(o); const close = () => o.remove(); let right = 0, n = 2;
+  o.onclick = e => { if (e.target === o) close(); }; o.querySelector('#kx').onclick = close;
+  const bind = () => o.querySelectorAll('.kmark').forEach(b => b.onclick = () => { right = +b.dataset.m; o.querySelectorAll('.kmark').forEach(x => { const on = +x.dataset.m === right; x.classList.toggle('on', on); x.textContent = on ? '✓' : ''; }); });
+  bind();
+  o.querySelector('#k3').onclick = e => { n = 3; o.querySelector('#krows').insertAdjacentHTML('beforeend', row(2)); e.target.remove(); bind(); };
+  o.querySelector('#kgo').onclick = async () => {
+    const q = o.querySelector('#kq').value.trim(), km = o.querySelector('#kmsg');
+    const opts = [...o.querySelectorAll('.kin')].map(i => i.value.trim());
+    if (q.length < 3) return km.textContent = 'Escribe la pregunta.';
+    if (opts.some(x => !x)) return km.textContent = 'Completa todas las opciones.';
+    o.querySelector('#kgo').disabled = true;
+    const { error } = await sb.rpc('know_create', { p_q: q, p_opts: opts, p_answer: right });
+    if (error) { o.querySelector('#kgo').disabled = false; return km.textContent = /3 preguntas/.test(error.message) ? 'Máximo 3 preguntas al día.' : error.message; }
+    close(); await loadCircle(); drawPanel();
+  };
 }
 function drawQuestion() {
   const box = $('#panel'); if (!box) return;
@@ -510,16 +567,20 @@ function drawQuestion() {
     h += `<div class="qm"><small>Tu respuesta</small><p>${esc(mine.answer)}</p><button class="link" id="qedit" style="padding:0;align-self:flex-start">Editar</button></div>`;
     h += others.length ? others.map(r => { const p = pprof(r.user_id); return `<div class="qr">${p ? ava(p, 34) : ''}<div><b>${esc(p ? p.display_name : 'Alguien')}</b><p>${esc(r.answer)}</p></div></div>`; }).join('') : '<p class="muted">Aún nadie más ha respondido. 🌱</p>';
   }
-  h += duoHtml();
+  h += knowHtml();
   box.innerHTML = h;
-  box.querySelectorAll('[data-duo]').forEach(b => b.onclick = async () => {
-    const pick = +b.dataset.duo; b.disabled = true;
-    const { error } = await sb.from('daily_picks').upsert({ user_id: me.id, day, duo_index: duoFor(day), pick }, { onConflict: 'user_id,day' });
-    if (error) { b.disabled = false; return msg('No se pudo guardar: ' + error.message); }
-    const { data } = await sb.from('daily_picks').select('user_id, pick').eq('day', day);
-    dp.rows = data || []; drawPanel();
+  box.querySelectorAll('[data-kq]').forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    const { data, error } = await sb.rpc('know_guess', { p_quiz: b.dataset.kq, p_guess: +b.dataset.i });
+    if (error) { b.disabled = false; return msg(error.message); }
+    kq.guesses.push({ quiz_id: b.dataset.kq, user_id: me.id, guess: +b.dataset.i }); kq.keys[b.dataset.kq] = data; drawPanel();
   });
-  const dch = box.querySelector('#duochg'); if (dch) dch.onclick = () => { dp.rows = dp.rows.filter(r => r.user_id !== me.id); drawPanel(); };
+  box.querySelectorAll('[data-kdel]').forEach(b => b.onclick = async () => {
+    if (!confirm('¿Eliminar esta pregunta?')) return;
+    await sb.from('know_quiz').delete().eq('id', b.dataset.kdel); await loadCircle(); drawPanel();
+  });
+  const km = box.querySelector('#kmore'); if (km) km.onclick = () => { kqMore = !kqMore; drawPanel(); };
+  const kmk = box.querySelector('#kmake'); if (kmk) kmk.onclick = newQuiz;
   const send = box.querySelector('#qsend');
   if (send) send.onclick = async () => {
     const ans = $('#qans').value.trim(); if (!ans) return msg('Escribe tu respuesta.');
@@ -656,11 +717,25 @@ function applyWall() {
 
 let fromCfg = false;
 const goBack = () => fromCfg ? viewSettings() : viewHome();
+function bdayDays(bd) {
+  if (!bd) return null;
+  const [, m, d] = bd.split('-').map(Number), now = new Date(), t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let n = new Date(now.getFullYear(), m - 1, d); if (n < t0) n = new Date(now.getFullYear() + 1, m - 1, d);
+  return Math.round((n - t0) / 864e5);
+}
+function bdayHtml(list) {
+  const items = [];
+  const mine = bdayDays(profile.birthday); if (mine === 0) items.push(`<div class="bday me"><span class="bi">🎂</span><div><b>¡Feliz cumpleaños, ${esc(profile.display_name)}!</b><small>Que tengas un día increíble</small></div></div>`);
+  list.map(c => [c.profiles, bdayDays(c.profiles.birthday)]).filter(([, n]) => n !== null && n <= 7).sort((a, b) => a[1] - b[1]).slice(0, 2).forEach(([p, n]) => {
+    items.push(`<button class="bday ${n === 0 ? 'hoy' : ''}" data-bd="${esc(p.id)}"><span class="bi">${n === 0 ? '🎂' : '🎉'}</span><div><b>${n === 0 ? 'Hoy cumple ' + esc(p.display_name) : esc(p.display_name) + ' cumple ' + (n === 1 ? 'mañana' : 'en ' + n + ' días')}</b><small>${n === 0 ? 'Toca para felicitar' : 'Toca para escribirle'}</small></div></button>`);
+  });
+  return items.join('');
+}
 async function viewHome() {
   fromCfg = false; applyWall();
   if ($('#tnew')) tDraft = $('#tnew').value;
   const [{ data, error }, { data: un }, { data: convs }, { data: lastMsgs }] = await Promise.all([
-    sb.from('contacts').select('ring, profiles!contacts_contact_fkey(id, display_name, color, mood, avatar_path)').eq('owner', me.id),
+    sb.from('contacts').select('ring, profiles!contacts_contact_fkey(id, display_name, color, mood, avatar_path, birthday)').eq('owner', me.id),
     sb.from('messages').select('sender_id').neq('sender_id', me.id).neq('status', 'read').is('deleted_at', null).limit(1000),
     sb.from('conversations').select('id, user_a, user_b'),
     sb.from('messages').select('conversation_id, sender_id, kind, body, created_at, deleted_at, expires_at').order('created_at', { ascending: false }).limit(100),
@@ -685,6 +760,7 @@ async function viewHome() {
   ${error ? `<p id="msg">${esc(error.message)}</p>` : '<p id="msg" role="status">' + esc(pendingError) + '</p>'}
   ${ps === 'off' ? '<button class="link" id="hint" style="text-align:left;padding:0">🔔 Activa las notificaciones en Ajustes</button>' : ''}
     <div class="moods">${Object.entries(MOODS).map(([k, v]) => `<button class="mchip${profile.mood === k ? ' on' : ''}" data-m="${k}">${esc(v[0])}</button>`).join('')}</div>
+  ${bdayHtml(list)}
   <div class="deck">
     <div class="dtabs" role="tablist">
       <button class="dtab" data-tab="dia" role="tab">📅 Mi día<span class="tb"></span></button>
@@ -704,6 +780,7 @@ async function viewHome() {
   document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { homeTab = b.dataset.tab; qEditing = false; try { localStorage.setItem('hl_tab', homeTab); } catch (_) {} drawPanel(); });
   drawPanel();
   document.querySelectorAll('[data-i]').forEach(b => b.onclick = () => viewChat(list[+b.dataset.i].profiles));
+  document.querySelectorAll('[data-bd]').forEach(b => b.onclick = () => { const c = list.find(x => x.profiles.id === b.dataset.bd); if (c) viewChat(c.profiles); });
   document.querySelectorAll('[data-m]').forEach(b => b.onclick = async () => {
     const k = b.dataset.m; if (profile.mood === k) return;
     const prev = profile.mood; profile.mood = k;
@@ -728,6 +805,9 @@ async function viewSettings() {
   <details class="acc" open><summary>🧑 Mi perfil</summary>
     <div style="display:flex;align-items:center;gap:14px">${ava(profile, 72)}<div style="display:flex;flex-direction:column;gap:6px;flex:1;align-items:stretch"><button class="btn2" id="phot" style="height:42px">${profile.avatar_path ? 'Cambiar foto' : 'Añadir foto'}</button>${profile.avatar_path ? '<button class="link" id="pnophoto">Quitar foto</button>' : ''}</div></div>
     <input type="file" id="pfile" accept="image/*" hidden>
+    <p class="muted">Mi cumpleaños 🎂 <small style="font-size:12px">(solo día y mes; tu círculo recibe un recordatorio)</small></p>
+    <div class="bdrow"><select id="bdd" aria-label="Día"><option value="">Día</option>${Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('')}</select><select id="bdm" aria-label="Mes"><option value="">Mes</option>${['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'].map((n, i) => `<option value="${i + 1}">${n}</option>`).join('')}</select><button class="btn2" id="bdsave" style="height:46px;padding:0 16px;font-size:15px;flex:none">Guardar</button></div>
+    ${profile.birthday ? '<button class="link" id="bdclr" style="text-align:left;padding:0;font-size:13px">Quitar mi cumpleaños</button>' : ''}
     <p class="muted">Mis gustos (hasta 12)</p>
     <div class="moods">${INTERESTS.map(([k, n]) => `<button class="mchip${(profile.interests || []).includes(k) ? ' on' : ''}" data-g="${k}">${esc(n)}</button>`).join('')}</div>
   </details>
@@ -783,6 +863,18 @@ async function viewSettings() {
     profile.avatar_path = null; if (old) sb.storage.from('avatars').remove([old]);
     pendingError = 'Foto quitada.'; viewSettings();
   };
+  if (profile.birthday) { const [, bm, bd] = profile.birthday.split('-').map(Number); $('#bdd').value = bd; $('#bdm').value = bm; }
+  const saveBd = async v => {
+    const { error } = await sb.from('profiles').update({ birthday: v }).eq('id', me.id);
+    if (error) return msg('No se pudo guardar: ' + error.message);
+    profile.birthday = v; pendingError = v ? '🎂 Cumpleaños guardado.' : 'Cumpleaños quitado.'; viewSettings();
+  };
+  $('#bdsave').onclick = () => {
+    const d = +$('#bdd').value, m = +$('#bdm').value; if (!d || !m) return msg('Elige día y mes.');
+    const dim = new Date(2000, m, 0).getDate(); if (d > dim) return msg('Ese día no existe en ese mes.');
+    saveBd(`2000-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+  };
+  const bc = $('#bdclr'); if (bc) bc.onclick = () => saveBd(null);
   document.querySelectorAll('[data-g]').forEach(b => b.onclick = async () => {
     const cur = new Set(profile.interests || []); const k = b.dataset.g;
     if (cur.has(k)) cur.delete(k); else { if (cur.size >= 12) return msg('Máximo 12 gustos.'); cur.add(k); }
@@ -888,7 +980,7 @@ document.addEventListener('touchmove', () => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.id !== 'txt') setTimeout(() => e.target.blur(), 50);
 });
-const APP_VERSION = '23';
+const APP_VERSION = '24';
 async function updateApp() {
   const b = $('#upd'); if (b) { b.disabled = true; b.textContent = 'Actualizando…'; }
   try {
