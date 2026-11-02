@@ -55,6 +55,17 @@ button{font-family:inherit;cursor:pointer;touch-action:manipulation;-webkit-tap-
 .mchip.on{background:var(--cy);border-color:var(--cy);color:#0B0F1A;font-weight:700}
 .day{background:var(--sf);border:1px solid var(--bd);border-radius:20px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 .pic{display:block;max-width:100%;max-height:300px;min-height:100px;border-radius:12px;cursor:zoom-in;background:var(--ch)}
+.hero{display:flex;align-items:center;gap:16px;padding:14px 16px;border-radius:26px;background:linear-gradient(135deg,rgba(139,123,255,.28),rgba(61,242,224,.14));border:1px solid var(--bd)}
+.herobtn{border:0;background:none;padding:0;flex:none;border-radius:50%}
+.herotxt{display:flex;flex-direction:column;gap:3px;min-width:0;align-items:flex-start}
+.herotxt small{font-size:13px;color:var(--mu)}
+.herotxt b{font-size:30px;line-height:1.05;font-weight:700;background:linear-gradient(90deg,#fff,var(--cy));-webkit-background-clip:text;background-clip:text;color:transparent;overflow-wrap:anywhere}
+.herotxt em{font-style:normal;font-size:12px;color:var(--mu)}
+.pvbtns{display:flex;gap:12px;width:100%;max-width:360px;align-items:center;margin-top:6px}
+.pvno,.pvok{height:58px;border-radius:29px;font-size:17px;display:flex;align-items:center;justify-content:center;gap:9px;transition:transform .12s}
+.pvno:active,.pvok:active{transform:scale(.96)}
+.pvno{flex:0 0 38%;border:1.5px solid #FF7A90;background:rgba(255,122,144,.10);color:#FFB3C0;font-weight:700}
+.pvok{flex:1;border:0;background:linear-gradient(135deg,#3DF2E0,#8B7BFF);color:#0B0F1A;font-weight:800;box-shadow:0 10px 28px rgba(61,242,224,.28)}
 .dayh{display:flex;justify-content:space-between;align-items:center}
 .dayh b{font-size:16px}.dayh .muted{font-size:13px}.day .link{text-align:left;align-self:flex-start}.day{padding:14px 14px}
 .task{display:flex;align-items:center;gap:10px}
@@ -388,8 +399,12 @@ async function viewHome() {
   const body = c => { const m = last[c.profiles.id]; return `<div class="ct"><b>${esc(c.profiles.display_name)}</b><span class="pv">${m ? esc(msgPreview(m, m.sender_id === me.id)) : `<i style="color:${esc(c.profiles.color)}">${esc((MOODS[c.profiles.mood]||['—'])[0])}</i>`}</span></div><span class="cm"><small>${esc(msgTime(m))}</small>${badge(c)}</span>`; };
   const card = c => `<button class="card" data-i="${list.indexOf(c)}">${ava(c.profiles, 46)}${body(c)}</button>`;
   const row = c => `<button class="row" data-i="${list.indexOf(c)}">${ava(c.profiles)}${body(c)}</button>`;
-  R(`<div class="top"><span class="logo">HUSHLIGHT</span><span style="display:flex;gap:10px;align-items:center"><span class="mood" id="mpill">${esc((MOODS[profile.mood]||['Calma'])[0])}</span><button class="gear" id="cfg" aria-label="Ajustes">⚙️</button></span></div>
-  <h1>Hola, ${esc(profile.display_name)}.</h1>
+  const hr = new Date().getHours(), saludo = hr < 6 ? 'Buena madrugada 🌙' : hr < 12 ? 'Buenos días ☀️' : hr < 19 ? 'Buenas tardes 🌤️' : 'Buenas noches 🌙';
+  let fecha = new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' }); fecha = fecha.charAt(0).toUpperCase() + fecha.slice(1);
+  R(`<div class="top"><span class="logo">HUSHLIGHT</span><button class="gear" id="cfg" aria-label="Ajustes">⚙️</button></div>
+  <div class="hero"><button class="herobtn" id="me" aria-label="Mi perfil">${ava(profile, 70)}</button>
+    <div class="herotxt"><small>${saludo}</small><b>${esc(profile.display_name)}</b><span class="mood" id="mpill">${esc((MOODS[profile.mood]||['Calma'])[0])}</span><em>${esc(fecha)}</em></div>
+  </div>
   ${error ? `<p id="msg">${esc(error.message)}</p>` : '<p id="msg" role="status">' + esc(pendingError) + '</p>'}
   ${ps === 'off' ? '<button class="link" id="hint" style="text-align:left;padding:0">🔔 Activa las notificaciones en Ajustes</button>' : ''}
   <div class="q">¿Cómo estás hoy?</div>
@@ -415,6 +430,7 @@ async function viewHome() {
   $('#sos').onclick = viewSOS;
   $('#inv').onclick = viewInvite;
   $('#cfg').onclick = viewSettings;
+  $('#me').onclick = viewSettings;
   if ($('#hint')) $('#hint').onclick = viewSettings;
   if (ps === 'on') syncPush();
   updateBadge();
@@ -562,7 +578,7 @@ function startMsgs() {
       updateBadge();
     }).subscribe();
 }
-const APP_VERSION = '16';
+const APP_VERSION = '17';
 async function updateApp() {
   const b = $('#upd'); if (b) { b.disabled = true; b.textContent = 'Actualizando…'; }
   try {
@@ -870,10 +886,7 @@ async function viewChat(other) {
     if (error) return msg(error.message);
     msg(''); clearReply(); seen.set(data.id, data); draw(); $('#msgs').scrollTop = $('#msgs').scrollHeight;
   };
-  const sendImage = async file => {
-    msg('Preparando foto…');
-    let blob; try { blob = await shrink(file, 1280, false, 0.72); } catch (e) { return msg(e.message); }
-    if (!blob || blob.size > 2000000) return msg('La foto es demasiado pesada.');
+  const uploadImage = async blob => {
     const path = `${conv.id}/${crypto.randomUUID()}.jpg`;
     msg('Enviando foto…');
     const up = await sb.storage.from('images').upload(path, blob, { contentType: 'image/jpeg' });
@@ -881,6 +894,23 @@ async function viewChat(other) {
     const { data, error } = await sb.from('messages').insert({ conversation_id: conv.id, sender_id: me.id, kind: 'image', audio_path: path, reply_to: replying ? replying.id : null }).select().single();
     if (error) { sb.storage.from('images').remove([path]); return msg(error.message); }
     msg(''); clearReply(); seen.set(data.id, data); draw(); $('#msgs').scrollTop = $('#msgs').scrollHeight;
+  };
+  const sendImage = async file => {
+    msg('Preparando foto…');
+    let blob; try { blob = await shrink(file, 1280, false, 0.72); } catch (e) { return msg(e.message); }
+    if (!blob || blob.size > 2000000) return msg('La foto es demasiado pesada.');
+    msg('');
+    const url = URL.createObjectURL(blob);
+    const o = document.createElement('div');
+    o.style.cssText = 'position:fixed;inset:0;z-index:9997;background:rgba(8,11,28,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;box-sizing:border-box';
+    o.innerHTML = `<p class="muted" style="margin:0">Vista previa · se enviará a ${esc(other.display_name)}</p>
+      <img src="${url}" alt="Vista previa" style="max-width:100%;max-height:58vh;border-radius:20px;box-shadow:0 0 0 1px var(--bd),0 14px 44px rgba(139,123,255,.35)">
+      <p class="muted" style="margin:0">${Math.round(blob.size / 1024)} KB</p>
+      <div class="pvbtns"><button class="pvno" id="pvno"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>Cancelar</button><button class="pvok" id="pvok">Enviar<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0B0F1A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3L10 14"/><path d="M21 3l-7 18-4-7-7-4z"/></svg></button></div>`;
+    document.body.appendChild(o);
+    const close = () => { o.remove(); URL.revokeObjectURL(url); };
+    o.querySelector('#pvno').onclick = close;
+    o.querySelector('#pvok').onclick = () => { close(); uploadImage(blob); };
   };
   $('#photo').onclick = () => $('#imgfile').click();
   $('#imgfile').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) sendImage(f); };
