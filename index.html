@@ -158,6 +158,7 @@ async function boot() {
     const { data, error } = await sb.from('profiles').select('*').eq('id', me.id).single();
     if (error) throw error;
     profile = data;
+    try { const tz = Intl.DateTimeFormat().resolvedOptions().timeZone; if (tz && profile.tz !== tz) { profile.tz = tz; sb.from('profiles').update({ tz }).eq('id', me.id).then(() => {}); } } catch (_) {}
     if (!profile.display_name) return viewOnboarding();
     startSignals(); startMsgs();
     const code = sessionStorage.getItem('pending');
@@ -270,6 +271,7 @@ function drawTasks() {
   <div id="topts" ${tasksAdding ? '' : 'hidden'}>
     <div class="emos">${EMO.map(e => `<button class="emo${tEmoji === e ? ' on' : ''}" data-e="${e}">${e}</button>`).join('')}</div>
     <div class="tdt"><label>Día<input type="date" id="tdate" value="${today}" min="${today}"></label><label>Hora (opcional)<input type="time" id="ttime"></label></div>
+    <p class="muted" style="font-size:12px">🔔 Si pones hora, te aviso con una notificación.</p>
     <button class="btn2" id="tsave" style="height:42px">Guardar tarea</button>
   </div>`;
   box.querySelectorAll('[data-t]').forEach(b => b.onclick = async () => {
@@ -301,7 +303,8 @@ async function addTask() {
   const emoji = tEmoji || guessEmoji(text);
   const due_on = ($('#tdate') && $('#tdate').value) || todayStr();
   const due_time = ($('#ttime') && $('#ttime').value) || null;
-  const { data, error } = await sb.from('tasks').insert({ text, emoji, due_on, due_time }).select().single();
+  const pasada = !!due_time && new Date(due_on + 'T' + due_time) <= new Date();
+  const { data, error } = await sb.from('tasks').insert({ text, emoji, due_on, due_time, reminded: pasada }).select().single();
   if (error) return msg(/30/.test(error.message) ? 'Tienes 30 tareas pendientes. Completa alguna primero.' : 'No se pudo guardar: ' + error.message);
   tasks.push(data); tEmoji = null; tDraft = ''; tasksAdding = false; msg(''); drawTasks();
 }
@@ -578,7 +581,7 @@ function startMsgs() {
       updateBadge();
     }).subscribe();
 }
-const APP_VERSION = '17';
+const APP_VERSION = '18';
 async function updateApp() {
   const b = $('#upd'); if (b) { b.disabled = true; b.textContent = 'Actualizando…'; }
   try {
@@ -755,7 +758,7 @@ async function viewChat(other) {
   const fill = (el, m, mine) => {
     el.innerHTML = ''; el.dataset.del = m.deleted_at ? '1' : '';
     if (m.deleted_at) {
-      const sp = document.createElement('span'); sp.style.fontStyle = 'italic'; sp.textContent = 'Mensaje eliminado'; el.appendChild(sp);
+      const sp = document.createElement('span'); sp.style.fontStyle = 'italic'; sp.textContent = m.body === '__caducado' ? (m.kind === 'image' ? 'Foto caducada' : 'Audio caducado') : 'Mensaje eliminado'; el.appendChild(sp);
     } else {
       const tgt = m.reply_to ? seen.get(m.reply_to) : null;
       if (tgt) {
