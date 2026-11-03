@@ -173,6 +173,7 @@ textarea{border-radius:14px;border:1px solid var(--bd);background:var(--bg);colo
 .duop{display:flex;align-items:center;gap:10px;font-size:14px}.duop span{flex:1;min-width:0}.duop em{font-style:normal;font-size:12px;color:var(--mu);white-space:nowrap}.duop em.ok{color:var(--cy);font-weight:700}
 
 /* ---- Extras del chat ---- */
+.cprofc{align-items:center;text-align:center;gap:10px;padding-bottom:18px}.cpbig{align-self:center;margin-top:4px}.cpbig .ava{border-width:4px}
 .xbtn{position:relative;margin-left:auto;width:42px;height:42px;border-radius:50%;border:1px solid var(--bd);background:rgba(255,255,255,.05);font-size:18px;flex:none}
 .xdot{position:absolute;top:2px;right:2px;width:11px;height:11px;border-radius:50%;background:#FFC15A;border:2px solid var(--bg);animation:pulso 2s infinite}
 .xhead{display:flex;align-items:center;gap:12px;padding:2px 4px 6px}.xhead b{display:block;font-size:18px}.xhead small{color:var(--mu);font-size:12.5px}
@@ -763,7 +764,7 @@ async function viewHome() {
   fromCfg = false; applyWall();
   if ($('#tnew')) tDraft = $('#tnew').value;
   const [{ data, error }, { data: un }, { data: convs }, { data: lastMsgs }] = await Promise.all([
-    sb.from('contacts').select('ring, profiles!contacts_contact_fkey(id, display_name, color, mood, avatar_path, birthday)').eq('owner', me.id),
+    sb.from('contacts').select('ring, profiles!contacts_contact_fkey(id, display_name, color, mood, avatar_path, birthday, interests)').eq('owner', me.id),
     sb.from('messages').select('sender_id').neq('sender_id', me.id).neq('status', 'read').is('deleted_at', null).limit(1000),
     sb.from('conversations').select('id, user_a, user_b'),
     sb.from('messages').select('id, conversation_id, sender_id, kind, body, created_at, deleted_at, expires_at').order('created_at', { ascending: false }).limit(100),
@@ -1109,7 +1110,7 @@ document.addEventListener('touchmove', () => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.id !== 'txt') setTimeout(() => e.target.blur(), 50);
 });
-const APP_VERSION = '29';
+const APP_VERSION = '30';
 async function updateApp() {
   const b = $('#upd'); if (b) { b.disabled = true; b.textContent = 'Actualizando…'; }
   try {
@@ -1228,12 +1229,28 @@ function viewSOS() {
   $('#back').onclick = () => { clearInterval(iv); viewHome(); };
 }
 
+function openContactProfile(p) {
+  const o = document.createElement('div'); o.className = 'sheetbg';
+  const gs = (p.interests || []).map(k => (INTERESTS.find(x => x[0] === k) || [])[1]).filter(Boolean);
+  const mood = MOODS[p.mood] ? MOODS[p.mood][0] : '';
+  o.innerHTML = `<div class="sheet cprofc" role="dialog" aria-label="Perfil de ${esc(p.display_name)}"><div class="grab"></div>
+    <button class="herobtn cpbig" id="cpbig" aria-label="Ver foto grande" style="font-size:52px">${ava(p, 132)}</button>
+    <b style="font-size:24px">${esc(p.display_name)}</b>
+    ${mood ? `<span class="mood" style="color:${esc(p.color)}">${esc(mood)}</span>` : ''}
+    ${p.birthday ? `<span class="muted">🎂 Cumple el ${esc(bdText(p.birthday))}</span>` : ''}
+    ${gs.length ? `<div class="moods" style="justify-content:center">${gs.map(g => `<span class="mchip on" style="pointer-events:none">${esc(g)}</span>`).join('')}</div>` : '<p class="muted" style="font-size:13px">Aún no ha elegido sus gustos.</p>'}
+    <p class="muted" style="font-size:12px" id="cphint">${p.avatar_path ? 'Toca la foto para verla en grande' : 'Aún no tiene foto de perfil'}</p>
+    <button class="sclose" id="cpx">Cerrar</button></div>`;
+  document.body.appendChild(o); const close = () => o.remove();
+  o.onclick = e => { if (e.target === o) close(); }; o.querySelector('#cpx').onclick = close;
+  o.querySelector('#cpbig').onclick = () => { const im = o.querySelector('.ava img'); if (im) openPic(im.src); };
+}
 async function viewChat(other) {
   const { data: conv, error: ce } = await sb.from('conversations').select('id')
     .or(`and(user_a.eq.${me.id},user_b.eq.${other.id}),and(user_a.eq.${other.id},user_b.eq.${me.id})`).maybeSingle();
   if (ce || !conv) { pendingError = ce ? ce.message : 'No se encontró la conversación.'; return viewHome(); }
   R(`<div class="chat">
-    <div class="chat-top"><button class="link" id="back">‹ Volver</button>${ava(other)}<div><b>${esc(other.display_name)}</b><div class="muted" style="color:${esc(other.color)}">${esc((MOODS[other.mood]||['—'])[0])}</div></div><button class="xbtn" id="xtra" aria-label="Extras del chat">✨<i class="xdot" hidden></i></button></div>
+    <div class="chat-top"><button class="link" id="back">‹ Volver</button><button class="herobtn" id="cprof" aria-label="Ver perfil de ${esc(other.display_name)}">${ava(other)}</button><div><b>${esc(other.display_name)}</b><div class="muted" style="color:${esc(other.color)}">${esc((MOODS[other.mood]||['—'])[0])}</div></div><button class="xbtn" id="xtra" aria-label="Extras del chat">✨<i class="xdot" hidden></i></button></div>
     <div id="capban"></div>
     <p class="muted" id="live" style="margin:0;font-size:12px">Conectando…</p>
     <div class="msgs" id="msgs"></div>
@@ -1575,6 +1592,7 @@ async function viewChat(other) {
     o.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { if (!confirm('¿Eliminar esta cápsula?')) return; await sb.from('capsules').delete().eq('id', b.dataset.del); close(); loadCaps(); });
   };
   $('#xtra').onclick = openExtras;
+  $('#cprof').onclick = () => openContactProfile(other);
   loadCaps(); capT = setInterval(() => { if (!left) loadCaps(); }, 60000);
   let rec = null, chunks = [], timer = null, t0 = 0;
   const micBtn = $('#mic'), cancelBtn = $('#cancel');
