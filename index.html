@@ -831,6 +831,34 @@ async function viewHome() {
 let cfgOpen = '';
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const bdText = bd => { if (!bd) return 'Sin definir'; const [, m, d] = bd.split('-').map(Number); return d + ' de ' + MESES[m - 1]; };
+async function runDiag() {
+  const o = document.createElement('div'); o.className = 'sheetbg';
+  o.innerHTML = `<div class="sheet" role="dialog" aria-label="Probar conexión"><div class="grab"></div>
+    <div class="xhead"><span class="xic">📡</span><div><b>Probar conexión</b><small>Esto tarda unos segundos</small></div></div>
+    <div id="dg" style="display:flex;flex-direction:column;gap:8px;font-size:14px"><p class="muted">Probando…</p></div>
+    <button class="btn2" id="dgcp" hidden>Copiar resultado</button><button class="sclose" id="dgx">Cerrar</button></div>`;
+  document.body.appendChild(o); const close = () => o.remove();
+  o.onclick = e => { if (e.target === o) close(); }; o.querySelector('#dgx').onclick = close;
+  const lines = [], dg = o.querySelector('#dg');
+  const add = (ok, t) => { lines.push((ok === true ? '✅ ' : ok === false ? '❌ ' : '⚠️ ') + t); dg.innerHTML = lines.map(l => `<div class="capitem">${esc(l)}</div>`).join(''); };
+  add(navigator.onLine ? true : false, navigator.onLine ? 'Internet del teléfono: conectado' : 'Internet del teléfono: sin conexión');
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  add(true, 'App: versión ' + APP_VERSION + (standalone ? ' · instalada' : ' · en el navegador'));
+  try { const t = performance.now(); const { error } = await sb.from('profiles').select('id').eq('id', me.id).limit(1); const ms = Math.round(performance.now() - t);
+    add(error ? false : ms > 2500 ? null : true, error ? 'Servidor: error (' + error.message + ')' : 'Servidor: responde en ' + ms + ' ms' + (ms > 2500 ? ' (lento)' : '')); }
+  catch (e) { add(false, 'Servidor: no responde (' + (e.message || e) + ')'); }
+  try { const { data } = await sb.auth.getSession(); const exp = data && data.session && data.session.expires_at; add(exp ? true : false, exp ? 'Sesión activa · se renueva sola (' + Math.max(0, Math.round((exp * 1000 - Date.now()) / 60000)) + ' min)' : 'Sesión: no hay sesión activa'); }
+  catch (e) { add(false, 'Sesión: ' + e.message); }
+  try {
+    const st = await new Promise(res => { let done = false; const ch = sb.channel('diag-' + Date.now()).subscribe(s2 => { if (done) return; if (s2 === 'SUBSCRIBED' || s2 === 'CHANNEL_ERROR' || s2 === 'TIMED_OUT' || s2 === 'CLOSED') { done = true; res(s2); sb.removeChannel(ch); } }); setTimeout(() => { if (!done) { done = true; res('TIMEOUT'); sb.removeChannel(ch); } }, 6000); });
+    add(st === 'SUBSCRIBED' ? true : false, 'Tiempo real: ' + (st === 'SUBSCRIBED' ? 'conectado' : 'no conecta (' + st + ')'));
+  } catch (e) { add(false, 'Tiempo real: ' + e.message); }
+  try { if (navigator.permissions && navigator.permissions.query) { const pm = await navigator.permissions.query({ name: 'microphone' }); add(pm.state === 'denied' ? false : pm.state === 'granted' ? true : null, 'Micrófono: ' + (pm.state === 'granted' ? 'permitido' : pm.state === 'denied' ? 'bloqueado (actívalo en Ajustes del teléfono)' : 'se pedirá permiso al grabar')); } else add(null, 'Micrófono: este navegador no informa el permiso'); }
+  catch (_) { add(null, 'Micrófono: no se pudo comprobar'); }
+  try { const rg = await navigator.serviceWorker.getRegistration(); add(rg && rg.active ? true : null, 'Servicio de la app: ' + (rg && rg.active ? 'activo' : 'no activo')); } catch (_) {}
+  const cp = o.querySelector('#dgcp'); cp.hidden = false;
+  cp.onclick = async () => { try { await navigator.clipboard.writeText('Hushlight diagnóstico\n' + lines.join('\n')); cp.textContent = 'Copiado ✓'; } catch (_) { cp.textContent = 'No se pudo copiar'; } };
+}
 function viewPrivacy() {
   R(`<div class="top"><span class="logo">PRIVACIDAD</span><button class="link" id="back">Volver</button></div>
   <h1 style="font-size:26px">Tu privacidad, en claro.</h1>
@@ -922,6 +950,7 @@ async function viewSettings() {
   <details class="acc" data-k="app"${cfgOpen === 'app' ? ' open' : ''}><summary><span>📱 La app</span></summary>
     ${installEv ? '<button class="srow" id="inst"><span class="si2">📲</span><span class="st"><b>Instalar Hushlight</b><small>Añádela a este dispositivo</small></span><i class="chev">›</i></button>' : ''}
     ${isIOS ? '<p class="muted">En iPhone: toca Compartir y luego «Agregar a pantalla de inicio».</p>' : ''}
+    <button class="srow" id="diag"><span class="si2">📡</span><span class="st"><b>Probar conexión</b><small>Revisa internet, servidor, tiempo real y micrófono</small></span><i class="chev">›</i></button>
     <button class="srow" id="priv"><span class="si2">🛡️</span><span class="st"><b>Privacidad y términos</b><small>Qué guardamos y cómo lo cuidamos</small></span><i class="chev">›</i></button>
     <div class="srow static" id="ver"><span class="si2">ℹ️</span><span class="st"><b>Versión ${APP_VERSION}</b><small>Hushlight</small></span></div>
   </details>
@@ -996,6 +1025,7 @@ async function viewSettings() {
   };
   if ($('#inst')) $('#inst').onclick = async () => { installEv.prompt(); await installEv.userChoice; installEv = null; viewSettings(); };
   $('#priv').onclick = viewPrivacy;
+  $('#diag').onclick = runDiag;
   $('#delacc').onclick = openDelAcc;
   $('#out').onclick = async () => { stopSignals(); try { const rg = await navigator.serviceWorker.getRegistration(); const sb2 = rg && await rg.pushManager.getSubscription(); if (sb2) await sb.rpc('drop_push', { p_endpoint: sb2.endpoint }); } catch (_) {} await sb.auth.signOut(); try { localStorage.removeItem(PIN_KEY); } catch (_) {} tab = 'entrar'; boot(); };
 }
@@ -1079,7 +1109,7 @@ document.addEventListener('touchmove', () => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.id !== 'txt') setTimeout(() => e.target.blur(), 50);
 });
-const APP_VERSION = '28';
+const APP_VERSION = '29';
 async function updateApp() {
   const b = $('#upd'); if (b) { b.disabled = true; b.textContent = 'Actualizando…'; }
   try {
@@ -1406,13 +1436,14 @@ async function viewChat(other) {
     const { error } = await sb.from('messages').update({ status: 'read' }).in('id', ids);
     if (!error) { ids.forEach(id => { seen.get(id).status = 'read'; }); draw(); updateBadge(); }
   };
-  const load = async () => {
-    let { data, error } = await sb.from('messages').select('*').eq('conversation_id', conv.id).order('created_at', { ascending: false }).limit(200);
-    if (error && /jwt|expired|401/i.test(error.message)) { await sb.auth.refreshSession(); ({ data, error } = await sb.from('messages').select('*').eq('conversation_id', conv.id).order('created_at', { ascending: false }).limit(200)); }
+  const load = async light => {
+    const LIM = light === true ? 60 : 200;
+    let { data, error } = await sb.from('messages').select('*').eq('conversation_id', conv.id).order('created_at', { ascending: false }).limit(LIM);
+    if (error && /jwt|expired|401/i.test(error.message)) { await sb.auth.refreshSession(); ({ data, error } = await sb.from('messages').select('*').eq('conversation_id', conv.id).order('created_at', { ascending: false }).limit(LIM)); }
     if (error) return msg('Sin conexión con el servidor: ' + error.message);
     if (!$('#msgs')) return;
     data.reverse();
-    if (data.length < 200) { // lo que no está en el servidor no se muestra
+    if (data.length < LIM) { // lo que no está en el servidor no se muestra
       const ok = new Set(data.map(m => m.id)); let gone = false;
       [...seen.keys()].forEach(id => { if (!ok.has(id)) { seen.delete(id); gone = true; } });
       if (gone) { const box = $('#msgs'); box.innerHTML = ''; els.clear(); quotes.clear(); lastDay = ''; lastAt = ''; }
@@ -1429,11 +1460,11 @@ async function viewChat(other) {
       const lv = $('#live');
       if (st === 'SUBSCRIBED') { clearInterval(poll); poll = null; load(); if (lv) lv.textContent = 'En vivo'; }
       else if (!left) {
-        if (lv) lv.textContent = 'Sin conexión en vivo (' + st + (err ? ': ' + err.message : '') + '). Actualizando cada 3 s.';
-        if (!poll) poll = setInterval(load, 3000);
+        if (lv) lv.textContent = 'Sin conexión en vivo (' + st + (err ? ': ' + err.message : '') + '). Actualizando cada 5 s.';
+        if (!poll) poll = setInterval(() => { if (document.visibilityState === 'visible') load(true); }, 5000);
       }
     });
-  poll = setInterval(load, 3000); // respaldo si el tiempo real no conecta
+  poll = setInterval(() => { if (document.visibilityState === 'visible') load(true); }, 5000); // respaldo si el tiempo real no conecta
   const wake = () => { if (!left) load(); };
   const onVis = () => { if (document.visibilityState === 'visible') wake(); };
   document.addEventListener('visibilitychange', onVis);
@@ -1548,17 +1579,22 @@ async function viewChat(other) {
   let rec = null, chunks = [], timer = null, t0 = 0;
   const micBtn = $('#mic'), cancelBtn = $('#cancel');
   const fmt = n => Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0');
+  let audioBusy = false;
   const sendAudio = async blob => {
     if (blob.size < 1000) return msg('El audio es muy corto.');
     const base = (blob.type || 'audio/webm').split(';')[0];
     const ext = base.includes('mp4') ? 'm4a' : base.includes('ogg') ? 'ogg' : base.includes('mpeg') ? 'mp3' : 'webm';
     const path = `${conv.id}/${crypto.randomUUID()}.${ext}`;
-    msg('Enviando audio…');
-    const up = await sb.storage.from('audios').upload(path, blob, { contentType: base });
-    if (up.error) return msg('No se pudo subir: ' + up.error.message);
-    const { data, error } = await sb.from('messages').insert({ conversation_id: conv.id, sender_id: me.id, kind: 'audio', audio_path: path, reply_to: replying ? replying.id : null }).select().single();
-    if (error) return msg(error.message);
-    msg(''); clearReply(); seen.set(data.id, data); draw(); $('#msgs').scrollTop = $('#msgs').scrollHeight;
+    audioBusy = true; micBtn.disabled = true; msg('Enviando audio…');
+    try {
+      let up = await sb.storage.from('audios').upload(path, blob, { contentType: base });
+      if (up.error && !/exist|policy|row-level|not allowed/i.test(up.error.message)) { await new Promise(r => setTimeout(r, 1200)); up = await sb.storage.from('audios').upload(path, blob, { contentType: base }); }
+      if (up.error) return msg('No se pudo subir el audio: ' + up.error.message);
+      const { data, error } = await sb.from('messages').insert({ conversation_id: conv.id, sender_id: me.id, kind: 'audio', audio_path: path, reply_to: replying ? replying.id : null }).select().single();
+      if (error) { sb.storage.from('audios').remove([path]); return msg('No se envió el audio: ' + error.message); }
+      msg(''); clearReply(); seen.set(data.id, data); draw(); $('#msgs').scrollTop = $('#msgs').scrollHeight;
+    } catch (e) { msg('Sin conexión: el audio no se envió. Inténtalo de nuevo.'); }
+    finally { audioBusy = false; micBtn.disabled = false; }
   };
   const uploadImage = async blob => {
     const path = `${conv.id}/${crypto.randomUUID()}.jpg`;
@@ -1588,26 +1624,39 @@ async function viewChat(other) {
   };
   $('#photo').onclick = () => $('#imgfile').click();
   $('#imgfile').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) sendImage(f); };
+  let starting = false;
+  const pickMime = () => { try { return ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'].find(t => MediaRecorder.isTypeSupported(t)) || ''; } catch (_) { return ''; } };
+  const resetMic = () => { clearInterval(timer); timer = null; micBtn.textContent = 'Grabar'; micBtn.classList.remove('rec'); cancelBtn.hidden = true; };
   const startRec = async () => {
+    if (audioBusy || starting) return;
     if (!navigator.mediaDevices || !window.MediaRecorder) return msg('Este navegador no permite grabar audio.');
+    starting = true; micBtn.textContent = 'Preparando…';
     let stream;
     try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-    catch { return msg('Permite el micrófono en el navegador para grabar.'); }
+    catch (e) {
+      starting = false; resetMic();
+      const n = e && e.name;
+      return msg(n === 'NotAllowedError' || n === 'SecurityError' ? 'El micrófono está bloqueado. Actívalo en Ajustes del teléfono → Hushlight (o Safari) → Micrófono.' : n === 'NotFoundError' ? 'No se encontró un micrófono.' : n === 'NotReadableError' ? 'El micrófono está en uso por otra app. Ciérrala e inténtalo de nuevo.' : 'No se pudo abrir el micrófono: ' + (e && e.message || n));
+    }
     chunks = [];
-    const r = new MediaRecorder(stream); rec = r;
-    r.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    let r;
+    try { const mt = pickMime(); r = mt ? new MediaRecorder(stream, { mimeType: mt }) : new MediaRecorder(stream); }
+    catch (e) { starting = false; stream.getTracks().forEach(t => t.stop()); resetMic(); return msg('No se pudo iniciar la grabación: ' + e.message); }
+    rec = r;
+    r.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    r.onerror = () => { stream.getTracks().forEach(t => t.stop()); resetMic(); r.cancelled = true; msg('La grabación se interrumpió. Inténtalo de nuevo.'); };
     r.onstop = async () => {
       stream.getTracks().forEach(t => t.stop());
-      clearInterval(timer); timer = null;
-      micBtn.textContent = 'Grabar'; micBtn.classList.remove('rec'); cancelBtn.hidden = true;
-      if (!r.cancelled) await sendAudio(new Blob(chunks, { type: r.mimeType }));
+      resetMic();
+      if (!r.cancelled) await sendAudio(new Blob(chunks, { type: r.mimeType || 'audio/mp4' }));
     };
-    r.start(); t0 = Date.now(); msg('');
+    try { r.start(); } catch (e) { starting = false; stream.getTracks().forEach(t => t.stop()); resetMic(); return msg('No se pudo iniciar la grabación: ' + e.message); }
+    starting = false; t0 = Date.now(); msg('');
     micBtn.classList.add('rec'); micBtn.textContent = 'Enviar · 0:00'; cancelBtn.hidden = false;
     timer = setInterval(() => {
       const sec = Math.floor((Date.now() - t0) / 1000);
       micBtn.textContent = 'Enviar · ' + fmt(sec);
-      if (sec >= 60) r.stop();
+      if (sec >= 60 && r.state === 'recording') r.stop();
     }, 250);
   };
   micBtn.onclick = () => { if (rec && rec.state === 'recording') rec.stop(); else startRec(); };
