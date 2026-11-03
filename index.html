@@ -831,6 +831,59 @@ async function viewHome() {
 let cfgOpen = '';
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const bdText = bd => { if (!bd) return 'Sin definir'; const [, m, d] = bd.split('-').map(Number); return d + ' de ' + MESES[m - 1]; };
+function viewPrivacy() {
+  R(`<div class="top"><span class="logo">PRIVACIDAD</span><button class="link" id="back">Volver</button></div>
+  <h1 style="font-size:26px">Tu privacidad, en claro.</h1>
+  <details class="acc" open><summary><span>📦 Qué guardamos</span></summary>
+    <p class="muted">Tu correo, tu nombre, color y estado de ánimo; si lo agregas: foto, gustos y el día y mes de tu cumpleaños (nunca el año); tus mensajes, audios y fotos; tus tareas, respuestas a preguntas y avisos de latido; y los datos técnicos para enviarte notificaciones.</p></details>
+  <details class="acc"><summary><span>🎯 Para qué lo usamos</span></summary>
+    <p class="muted">Solo para que la app funcione: entregar mensajes, mostrar tu círculo, recordatorios y avisos. No hay publicidad, no vendemos ni compartimos tus datos con terceros, y no leemos tus conversaciones.</p></details>
+  <details class="acc"><summary><span>👥 Quién lo ve</span></summary>
+    <p class="muted">Tus mensajes los ven solo las personas del chat. Tu perfil, estado y cumpleaños (día y mes) los ve tu círculo. Las respuestas del día y las elecciones de «¿Cuánto nos conocemos?» se muestran solo a quienes también participaron. Tus tareas son solo tuyas.</p></details>
+  <details class="acc"><summary><span>⏳ Cuánto tiempo</span></summary>
+    <p class="muted">Fotos y audios se borran solos a los 30 días. Los mensajes que se desvanecen, a la hora que elijas. Las tareas hechas, a los 7 días; las preguntas y respuestas del día, tras unos días o semanas. Puedes eliminar mensajes cuando quieras.</p></details>
+  <details class="acc"><summary><span>🗑️ Tus derechos</span></summary>
+    <p class="muted">Puedes corregir tus datos en Ajustes y eliminar tu cuenta y todos tus datos en Ajustes → Cuenta. Al hacerlo se borran también los mensajes que enviaste, para todos.</p></details>
+  <details class="acc"><summary><span>🏠 Dónde se guardan</span></summary>
+    <p class="muted">En servidores de Supabase, protegidos con acceso por cuenta y reglas que impiden ver datos ajenos. Los archivos son privados y se abren con enlaces temporales.</p></details>
+  <details class="acc"><summary><span>📜 Términos de uso</span></summary>
+    <p class="muted">Hushlight es una app privada por invitación, para círculos de confianza. Úsala con respeto: no la uses para acosar, engañar, enviar contenido ilegal ni compartir datos de otras personas sin su permiso. Podemos cerrar cuentas que incumplan esto. La app se ofrece tal cual, sin garantía de disponibilidad permanente; no la uses como único medio para emergencias.</p></details>
+  <p class="muted" style="font-size:12px;text-align:center">Para dudas o solicitudes sobre tus datos, escribe a la persona que administra Hushlight (quien te invitó).</p>
+  <button class="ghost" id="back2">Volver</button>`);
+  $('#back').onclick = $('#back2').onclick = viewSettings;
+}
+function openDelAcc() {
+  const o = document.createElement('div'); o.className = 'sheetbg';
+  o.innerHTML = `<div class="sheet" role="dialog" aria-label="Eliminar mi cuenta"><div class="grab"></div>
+    <div class="xhead"><span class="xic cap">⚠️</span><div><b>Eliminar mi cuenta</b><small>Esto no se puede deshacer</small></div></div>
+    <p class="muted" style="font-size:14px">Se borrarán tu perfil, tus mensajes (también para quienes los recibieron), fotos, audios, tareas, respuestas y tu lugar en los círculos. Tu correo quedará libre para registrarlo de nuevo.</p>
+    <label for="delc" style="font-size:13px;color:var(--mu)">Escribe <b style="color:var(--tx)">ELIMINAR</b> para confirmar</label>
+    <input id="delc" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="ELIMINAR">
+    <p class="muted" id="delm" style="font-size:13px;min-height:18px;color:#FFB3C0"></p>
+    <button class="btn2 danger" id="delgo" disabled>Eliminar para siempre</button><button class="sclose" id="delx">Cancelar</button></div>`;
+  document.body.appendChild(o); const close = () => o.remove();
+  o.onclick = e => { if (e.target === o) close(); }; o.querySelector('#delx').onclick = close;
+  const inp = o.querySelector('#delc'), go = o.querySelector('#delgo'), dm = o.querySelector('#delm');
+  inp.oninput = () => { go.disabled = inp.value.trim().toUpperCase() !== 'ELIMINAR'; };
+  go.onclick = async () => {
+    go.disabled = true; inp.disabled = true; dm.style.color = 'var(--mu)'; dm.textContent = 'Eliminando tus archivos…';
+    try {
+      const paths = { images: [], audios: [] };
+      const { data: ms } = await sb.from('messages').select('kind, audio_path').eq('sender_id', me.id).in('kind', ['image', 'audio']).not('audio_path', 'is', null).limit(1000);
+      (ms || []).forEach(m => paths[m.kind === 'image' ? 'images' : 'audios'].push(m.audio_path));
+      for (const b of ['images', 'audios']) for (let i = 0; i < paths[b].length; i += 100) await sb.storage.from(b).remove(paths[b].slice(i, i + 100));
+      if (profile.avatar_path) await sb.storage.from('avatars').remove([profile.avatar_path]);
+      dm.textContent = 'Eliminando tus datos…';
+      const { error } = await sb.rpc('delete_my_account');
+      if (error) throw error;
+    } catch (e) { dm.style.color = '#FFB3C0'; dm.textContent = 'No se pudo eliminar: ' + (e.message || e); inp.disabled = false; go.disabled = false; return; }
+    stopSignals();
+    try { const rg = await navigator.serviceWorker.getRegistration(); const sb2 = rg && await rg.pushManager.getSubscription(); if (sb2) await sb2.unsubscribe(); } catch (_) {}
+    try { await sb.auth.signOut(); } catch (_) {}
+    try { Object.keys(localStorage).filter(k => k.startsWith('hl_')).forEach(k => localStorage.removeItem(k)); } catch (_) {}
+    close(); tab = 'entrar'; pendingError = 'Tu cuenta y tus datos fueron eliminados.'; boot();
+  };
+}
 async function viewSettings() {
   fromCfg = true;
   const ps = await pushState();
@@ -869,10 +922,12 @@ async function viewSettings() {
   <details class="acc" data-k="app"${cfgOpen === 'app' ? ' open' : ''}><summary><span>📱 La app</span></summary>
     ${installEv ? '<button class="srow" id="inst"><span class="si2">📲</span><span class="st"><b>Instalar Hushlight</b><small>Añádela a este dispositivo</small></span><i class="chev">›</i></button>' : ''}
     ${isIOS ? '<p class="muted">En iPhone: toca Compartir y luego «Agregar a pantalla de inicio».</p>' : ''}
+    <button class="srow" id="priv"><span class="si2">🛡️</span><span class="st"><b>Privacidad y términos</b><small>Qué guardamos y cómo lo cuidamos</small></span><i class="chev">›</i></button>
     <div class="srow static" id="ver"><span class="si2">ℹ️</span><span class="st"><b>Versión ${APP_VERSION}</b><small>Hushlight</small></span></div>
   </details>
   <details class="acc" data-k="cuenta"${cfgOpen === 'cuenta' ? ' open' : ''}><summary><span>👤 Cuenta</span></summary>
     <button class="srow danger" id="out"><span class="si2">🚪</span><span class="st"><b>Salir</b><small>Cerrar sesión en este dispositivo</small></span></button>
+    <button class="srow danger" id="delacc"><span class="si2">⚠️</span><span class="st"><b>Eliminar mi cuenta y mis datos</b><small>Se borra todo, no se puede deshacer</small></span></button>
   </details>`);
   pendingError = '';
   $('#back').onclick = viewHome;
@@ -940,6 +995,8 @@ async function viewSettings() {
     viewSettings();
   };
   if ($('#inst')) $('#inst').onclick = async () => { installEv.prompt(); await installEv.userChoice; installEv = null; viewSettings(); };
+  $('#priv').onclick = viewPrivacy;
+  $('#delacc').onclick = openDelAcc;
   $('#out').onclick = async () => { stopSignals(); try { const rg = await navigator.serviceWorker.getRegistration(); const sb2 = rg && await rg.pushManager.getSubscription(); if (sb2) await sb.rpc('drop_push', { p_endpoint: sb2.endpoint }); } catch (_) {} await sb.auth.signOut(); try { localStorage.removeItem(PIN_KEY); } catch (_) {} tab = 'entrar'; boot(); };
 }
 
@@ -1022,7 +1079,7 @@ document.addEventListener('touchmove', () => {
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.id !== 'txt') setTimeout(() => e.target.blur(), 50);
 });
-const APP_VERSION = '27';
+const APP_VERSION = '28';
 async function updateApp() {
   const b = $('#upd'); if (b) { b.disabled = true; b.textContent = 'Actualizando…'; }
   try {
